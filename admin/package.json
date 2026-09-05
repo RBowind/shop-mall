@@ -1,0 +1,30 @@
+{
+  "name": "admin",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=24.0.0 <25.0.0"
+  },
+  "scripts": {
+    "dev": "max dev",
+    "build": "tsc --noEmit && max build && node scripts/patch-html.mjs",
+    "test": "node --experimental-strip-types --no-warnings --test test/*.test.mjs",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.5.2",
+    "@ant-design/pro-components": "^2.8.10",
+    "@umijs/max": "^4.7.7",
+    "antd": "^5.29.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.18.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "pg": "^8.23.0",
+    "typescript": "^5.9.3"
+  }
+}

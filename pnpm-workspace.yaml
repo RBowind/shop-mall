@@ -1,0 +1,4 @@
+packages:
+  - miniapp
+  - admin
+  - tools/openapi

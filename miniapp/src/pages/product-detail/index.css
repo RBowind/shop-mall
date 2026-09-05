@@ -1,0 +1,208 @@
+/**
+ * Product detail page styles — mirrors OpenDesign product-detail.html
+ * (prototype px ×2 → rpx). Tokens from brand-spec.md, applied literally:
+ * gray #f5f5f5 page, white 16rpx cards, brand red #e64340 points price,
+ * #fff3e8/#b26a00 notice strip, hairline rgba(0,0,0,.06) separators,
+ * fixed white action bar with safe-area padding.
+ */
+
+/* Full-bleed layout: the gallery touches the screen edges, so the global
+   .page padding is removed here and each section carries its own margins. */
+.pd-page {
+  padding: 0 0 calc(192rpx + env(safe-area-inset-bottom));
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.pd-error {
+  margin: 24rpx;
+  font-size: 26rpx;
+  color: #d54941;
+}
+
+/* -------------------------------- gallery (1:1, white behind image) --- */
+
+.pd-gallery {
+  width: 100%;
+  height: 750rpx;
+  background: #ffffff;
+}
+
+.pd-gallery--empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.pd-gallery__image {
+  width: 100%;
+  height: 750rpx;
+  display: block;
+  background: #f5f5f5;
+}
+
+/* ------------------------------- info card (glued under the gallery) -- */
+
+.pd-info {
+  background: #ffffff;
+  border-radius: 0 0 16rpx 16rpx;
+  padding: 28rpx 32rpx;
+  margin-bottom: 20rpx;
+}
+
+.pd-info__price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+}
+
+.pd-info__price {
+  color: #e64340;
+  font-size: 52rpx;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-info__price-unit {
+  color: #e64340;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+/* pill in app.css: 包邮 tag, action-soft bg + action text */
+.pd-info__pill {
+  align-self: center;
+  margin-left: 8rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #0052d9;
+  background: #f0f6ff;
+}
+
+.pd-info__name {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  line-height: 1.4;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.pd-info__desc {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.pd-info__meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 20rpx;
+  font-size: 22rpx;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+/* -------------------------------- notice strip (#fff3e8 / #b26a00) ---- */
+
+.pd-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  margin: 0 24rpx 20rpx;
+  padding: 20rpx 24rpx;
+  border-radius: 16rpx;
+  background: #fff3e8;
+}
+
+.pd-notice__text {
+  flex: 1;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: #b26a00;
+}
+
+/* -------------------------------- parameters cell card ---------------- */
+
+.pd-section-title {
+  margin: 0 24rpx 12rpx;
+  padding-left: 4rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.pd-cells {
+  background: #ffffff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  margin: 0 24rpx 20rpx;
+  padding: 0 32rpx;
+}
+
+.pd-cell {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24rpx;
+  padding: 22rpx 0;
+  font-size: 26rpx;
+  border-bottom: 1rpx solid rgba(0, 0, 0, 0.06);
+}
+
+.pd-cell:last-child {
+  border-bottom: none;
+}
+
+.pd-cell__k {
+  flex: none;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.pd-cell__v {
+  text-align: right;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+/* -------------------------------- image-rich detail ------------------- */
+
+.pd-rich {
+  background: #ffffff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  margin: 0 24rpx 24rpx;
+}
+
+.pd-rich__image {
+  display: block;
+  width: 100%;
+}
+
+/* -------------------------------- fixed action bar -------------------- */
+
+.pd-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  background: #ffffff;
+  border-top: 1rpx solid rgba(0, 0, 0, 0.06);
+  padding: 20rpx 24rpx;
+  padding-bottom: calc(28rpx + env(safe-area-inset-bottom));
+}
+
+/* Classes land on the t-button custom-element host; the TDesign brand color
+   is #0052D9 by default, matching the spec's action blue. */
+.pd-bar__btn {
+  flex: 1;
+  min-width: 0;
+}

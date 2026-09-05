@@ -1,0 +1,32 @@
+/*
+ * Global overrides for accessibility (Lighthouse color-contrast) and SEO
+ * (crawlable anchors). The .ant-pro-query-filter-collapse-button is rendered
+ * inside ProTable, so we can't easily restyle it via a prop; overriding here
+ * keeps the change isolated from the rest of the page.
+ */
+
+/* ProTable "展开/收起筛选" button — darker text + underline so it's a
+ * crawlable anchor with WCAG-AA contrast against the white toolbar. */
+.ant-pro-query-filter-collapse-button,
+.ant-pro-query-filter-collapse-button:visited {
+  color: #0958d9 !important;
+  text-decoration: underline;
+}
+.ant-pro-query-filter-collapse-button:hover,
+.ant-pro-query-filter-collapse-button:focus {
+  color: #003eb3 !important;
+}
+
+/* ProLayout menu labels inherit from the sider token; the inactive items
+ * hover on a dark background can drop below 4.5:1 against ant-pro-sider-light.
+ * Pin the foreground token to a darker gray that stays AA-compliant. */
+.ant-pro-sider-light .ant-menu-light .ant-menu-item,
+.ant-pro-sider-light .ant-menu-light .ant-menu-item a {
+  color: rgba(0, 0, 0, 0.88);
+}
+
+/* Empty-state description inside ProTable falls back to colorTextSecondary;
+ * ensure it stays dark enough to read on a white card. */
+.ant-empty-description {
+  color: rgba(0, 0, 0, 0.65) !important;
+}

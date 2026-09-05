@@ -1,0 +1,48 @@
+/* Orders list page chrome: horizontally scrollable status filter pills.
+   Selected tab = action-blue soft pill (#f0f6ff + #0052d9) per the brand
+   token "订单筛选选中 = #0052d9"; red stays reserved for prices/emphasis so
+   the tabs and the card totals never compete on the same screen. Unselected
+   = white pill with a hairline border. Cards live in components/order-card. */
+
+.orders-page {
+  padding-top: 20rpx;
+}
+
+.orders-page .error {
+  color: #d54941;
+  font-size: 26rpx;
+  line-height: 1.6;
+  padding: 0 8rpx 24rpx;
+}
+
+.orders-tabs {
+  width: 100%;
+  white-space: nowrap;
+  margin-bottom: 20rpx;
+}
+
+.orders-tabs__inner {
+  display: inline-flex;
+  gap: 16rpx;
+  padding: 4rpx 2rpx;
+}
+
+.orders-tabs__tab {
+  display: inline-block;
+  flex: none;
+  height: 64rpx;
+  line-height: 64rpx;
+  padding: 0 32rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  border: 2rpx solid rgba(0, 0, 0, 0.08);
+  font-size: 26rpx;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.orders-tabs__tab--active {
+  background: #f0f6ff;
+  border-color: #f0f6ff;
+  color: #0052d9;
+  font-weight: 600;
+}

@@ -1,0 +1,22 @@
+# 库内统一存 LF；文本文件按平台转换，除非下面显式指定
+* text=auto
+
+# 要在 Linux 容器/服务器里执行的产物，checkout 也必须保持 LF。
+# Windows 下 core.autocrlf=true 会把它们转成 CRLF，导致
+# `/bin/bash^M: bad interpreter` 或 Makefile 缩进解析失败。
+*.sh text eol=lf
+*.go text eol=lf
+Makefile text eol=lf
+*.sql text eol=lf
+*.conf text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+Dockerfile text eol=lf
+
+# 二进制资源不做任何换行转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.pem binary

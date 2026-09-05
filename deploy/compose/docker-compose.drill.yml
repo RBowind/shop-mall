@@ -1,0 +1,67 @@
+# Isolated restore-drill compose project.
+#
+# THIS PROJECT NEVER TOUCHES THE LIVE SYSTEM. It runs a throwaway source
+# PostgreSQL with WAL archiving, seeds it, takes a backup, and then restore.sh
+# recreates the database and image volume under the same isolated project. `make
+# restore-drill` measures RPO/RTO and tears everything down again.
+#
+# The `name:` field fixes the project name so every volume and the network are
+# predictably namespaced (shop-mall-drill_*). The postgres service is named
+# source-db with a fixed container name so the drill scripts can address it.
+name: shop-mall-drill
+
+services:
+  source-db:
+    image: postgres:16-alpine
+    restart: "no"
+    container_name: shop-mall-drill-source-db
+    environment:
+      POSTGRES_DB: shop_mall
+      POSTGRES_USER: shop_mall
+      POSTGRES_PASSWORD: drill
+      POSTGRES_HOST_AUTH_METHOD: trust
+    command:
+      - "-c"
+      - "wal_level=replica"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "archive_mode=on"
+      - "-c"
+      - "archive_command=test ! -f /wal/%f && cp %p /wal/%f"
+    volumes:
+      - wal:/wal
+      - source-data:/var/lib/postgresql/data
+      # The host backup root is bind-mounted so the real backup scripts write
+      # artifacts the host can checksum/restore directly. drill.sh sets
+      # DRILL_BACKUP_ROOT to the run's backup directory.
+      - ${DRILL_BACKUP_ROOT:?set DRILL_BACKUP_ROOT to the drill backup dir}:/backup
+      - ../../backend/migrations:/migrations:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop_mall -d shop_mall"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 3s
+    networks:
+      - drill
+
+# The restored database and image volume are started by restore.sh (docker run)
+# inside this same network, so the app container started by drill.sh can reach
+# them. No live volumes are ever mounted here.
+#
+# The network is deliberately NOT internal: drill.sh starts the app container
+# with a published loopback port so the release smoke suite (smoke.sh, which
+# curls from the host) can exercise it. Docker Desktop silently ignores
+# published ports on `internal: true` networks (verified 2026-08-13), and the
+# drill's isolation comes from the throwaway project name + dedicated volumes,
+# not from disabling this dedicated bridge network's egress.
+volumes:
+  wal:
+  source-data:
+  images:
+
+networks:
+  drill:

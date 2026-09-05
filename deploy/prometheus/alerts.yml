@@ -1,0 +1,98 @@
+# Alert rules for shop-mall. The metric names match the exporters in
+# backend/internal/platform/metrics (namespace shop_mall).
+groups:
+  - name: shop-mall-api
+    rules:
+      # Ratio of 5xx responses over the last 5 minutes. When the API is idle
+      # both rates are 0 and the division yields NaN, which never fires.
+      - alert: HTTP5xxRatioHigh
+        expr: |
+          sum(rate(shop_mall_http_requests_total{code="5xx"}[5m]))
+            / sum(rate(shop_mall_http_requests_total[5m]))
+          > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx ratio on the API"
+          description: "More than 5% of requests answered 5xx over the last 5 minutes (current {{ $value | humanizePercentage }})."
+
+      # P95 latency over the last 5 minutes above 1 second for 10 minutes.
+      - alert: HTTPP95LatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(shop_mall_http_request_duration_seconds_bucket[5m])) by (le))
+          > 1.0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 latency above 1s"
+          description: "P95 request latency is {{ $value | humanizeDuration }}, above the 1s threshold."
+
+  - name: shop-mall-database
+    rules:
+      # Pool exhaustion: more than 85% of the allowed connections are in use.
+      - alert: DBPoolExhaustion
+        expr: |
+          shop_mall_db_conn_max_open > 0
+            and (shop_mall_db_conn_in_use / shop_mall_db_conn_max_open) >= 0.85
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "{{ $value | humanizePercentage }} of the database connection pool is in use; requests are now queueing for a connection."
+
+  - name: shop-mall-storage
+    rules:
+      # Image volume nearly full. The used/capacity gauges are fed by the
+      # upload handler and the image cleanup loop.
+      - alert: ImageVolumePressure
+        expr: |
+          shop_mall_image_storage_capacity_bytes > 0
+            and (shop_mall_image_storage_used_bytes / shop_mall_image_storage_capacity_bytes) >= 0.90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Image volume above 90% capacity"
+          description: "The image volume is {{ $value | humanizePercentage }} full; uploads above capacity are rejected with 507."
+
+      # More than 5 failed uploads in 5 minutes.
+      - alert: UploadFailures
+        expr: increase(shop_mall_upload_failures_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Repeated image upload failures"
+          description: "More than 5 image uploads failed in the last 5 minutes. Full status goes to logs; the failure reason labels stay bounded."
+
+  - name: shop-mall-security
+    rules:
+      # Login rate-limiter rejections: more than 20 in 5 minutes indicates an
+      # active brute-force or credential-spraying attempt.
+      - alert: LoginThrottling
+        expr: increase(shop_mall_login_throttled_total[5m]) > 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Login rate limiter rejecting attempts"
+          description: "The login rate limiter rejected more than 20 attempts in the last 5 minutes ({{ $value }})."
+
+  - name: shop-mall-backup
+    rules:
+      # Backup freshness. The gauge is fed by the backup job (task 16) via
+      # metrics.SetBackupLastSuccess; until that job lands the gauge stays at
+      # zero and this alert fires continuously, which is the honest signal
+      # that no backup has ever succeeded.
+      - alert: BackupStale
+        expr: time() - shop_mall_backup_last_success_timestamp_seconds > 86400
+        for: 1h
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database backup is stale"
+          description: "The last successful database backup is more than 24 hours old (last success {{ $value | humanizeDuration }} ago)."

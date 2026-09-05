@@ -1,0 +1,33 @@
+# Prometheus configuration for shop-mall.
+#
+# Scrape targets:
+#   - app          the Go backend on the internal backend network (:8080)
+#   - prometheus   itself (self-scrape so the dashboard is not empty)
+#
+# Alerting is routed to the bundled Alertmanager service. Every rule below
+# pages or notes on a shop-mall health signal; thresholds are deliberately
+# conservative for a small deployment and can be tuned per environment.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    service: shop-mall
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: app
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["app:8080"]

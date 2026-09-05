@@ -1,0 +1,37 @@
+{
+  "name": "miniapp",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=24.0.0 <25.0.0"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "build:weapp": "pnpm run build",
+    "test": "node --experimental-strip-types --no-warnings --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "@babel/preset-react": "^7.29.7",
+    "@tarojs/cli": "4.2.1",
+    "@tarojs/plugin-framework-react": "4.2.1",
+    "@tarojs/plugin-platform-weapp": "4.2.1",
+    "@tarojs/webpack5-runner": "4.2.1",
+    "babel-preset-taro": "4.2.1",
+    "cross-env": "^10.1.0",
+    "react-refresh": "^0.14.2",
+    "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "@tarojs/components": "4.2.1",
+    "@tarojs/react": "4.2.1",
+    "@tarojs/runtime": "4.2.1",
+    "@tarojs/shared": "4.2.1",
+    "@tarojs/taro": "4.2.1",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tdesign-miniprogram": "^1.16.0",
+    "zustand": "^5.0.14"
+  }
+}

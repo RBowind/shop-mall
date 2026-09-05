@@ -1,0 +1,139 @@
+/**
+ * Cart page styles — OpenDesign cart prototype (px ×2 = rpx).
+ *
+ * White line cards on #f5f5f5, circular selection markers (blue #0052d9 fill
+ * with white check), grey unit-price sub-line, right-hand stepper column with
+ * the bordered 删除 chip, and the fixed white footer (全选 / 合计 red number +
+ * 积分 unit / blue 去结算). Component classes used by CartItemView live here
+ * because the global app.css is owned by another domain.
+ */
+
+.cart-item {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.cart-item--disabled {
+  opacity: 0.5;
+}
+
+.cart-item__check {
+  flex: none;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 3rpx solid rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-item__check--on {
+  background: #0052d9;
+  border-color: #0052d9;
+}
+
+.cart-item__check--disabled {
+  background: #f0f0f0;
+  border-color: transparent;
+}
+
+.cart-item__image {
+  width: 176rpx;
+  height: 176rpx;
+  border-radius: 16rpx;
+  flex: none;
+  background: #f0f0f0;
+}
+
+.cart-item__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.cart-item__name {
+  font-size: 26rpx;
+  line-height: 1.4;
+  color: rgba(0, 0, 0, 0.9);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.cart-item__unit {
+  font-size: 22rpx;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.cart-item__flag {
+  align-self: flex-start;
+}
+
+.cart-item__side {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 16rpx;
+}
+
+.cart-item__remove {
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: rgba(0, 0, 0, 0.6);
+  border: 2rpx solid rgba(0, 0, 0, 0.15);
+  border-radius: 8rpx;
+  padding: 2rpx 18rpx;
+}
+
+/* ------------------------------ Footer ------------------------------ */
+
+.cart-footer__all {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.cart-footer__all-label {
+  font-size: 26rpx;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.cart-footer__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-footer__total-label {
+  font-size: 24rpx;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.cart-footer__total-num {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #e64340;
+  font-variant-numeric: tabular-nums;
+}
+
+.cart-footer__total-unit {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #e64340;
+}

@@ -1,0 +1,24 @@
+# Alertmanager configuration for shop-mall.
+#
+# Minimal working setup for local development and the compose verification:
+# a single route fans every alert to a single receiver. The receiver is a
+# placeholder webhook target that does not exist; real notification channels
+# (SMTP, Slack, PagerDuty, ...) must replace it before production. No secrets
+# are configured here on purpose.
+
+route:
+  receiver: "team-default"
+  group_by: ["alertname", "service"]
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: "team-default"
+    webhook_configs:
+      # Placeholder: configure a real webhook URL or swap the receiver for an
+      # SMTP/Slack/PagerDuty integration in production. The URL is not
+      # reachable and exists only so the receiver list is non-empty and the
+      # configuration validates.
+      - url: "http://placeholder.invalid/shop-mall-alerts"
+        send_resolved: true

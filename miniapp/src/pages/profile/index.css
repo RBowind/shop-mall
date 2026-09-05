@@ -1,0 +1,264 @@
+/**
+ * Profile page styles (mine.html prototype).
+ *
+ * Red→orange gradient hero card with the white balance figure, white cards
+ * (16rpx radius, near-shadowless) on the #f5f5f5 page, hairline dividers
+ * rgba(0,0,0,.06), brand red #e64340 reserved for points figures.
+ */
+
+.mine {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+/* ------------------------------- Hero card ------------------------------ */
+
+.mine-hero {
+  background: linear-gradient(135deg, #e64340 0%, #f3791f 100%);
+  border-radius: 16rpx;
+  padding: 32rpx;
+  color: #ffffff;
+}
+
+.mine-hero__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+}
+
+.mine-hero__id {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.mine-hero__nickname-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.mine-hero__nickname {
+  flex: 1;
+  min-width: 0;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #ffffff;
+  height: 56rpx;
+  line-height: 56rpx;
+}
+
+.mine-hero__save {
+  flex: none;
+  font-size: 24rpx;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999rpx;
+  padding: 8rpx 24rpx;
+}
+
+.mine-hero__save--hover {
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.mine-hero__hint {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.mine-hero__avatar-wrap {
+  position: relative;
+  width: 120rpx;
+  height: 120rpx;
+  flex: none;
+}
+
+.mine-hero__avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  border: 6rpx solid rgba(255, 255, 255, 0.6);
+  box-sizing: border-box;
+}
+
+/* Native chooseAvatar button: a transparent overlay on top of the avatar
+ * image, so the WeChat button chrome never touches the image rendering. */
+.mine-hero__avatar-btn {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 120rpx;
+  height: 120rpx;
+  padding: 0;
+  margin: 0;
+  border-radius: 50%;
+  background: transparent;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.mine-hero__avatar-btn::after {
+  border: none;
+}
+
+.mine-hero__avatar-uploading {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mine-hero__balance-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+  margin-top: 40rpx;
+}
+
+.mine-hero__balance {
+  font-size: 80rpx;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.mine-hero__unit {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.mine-hero__pill {
+  margin-left: 8rpx;
+  font-size: 22rpx;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999rpx;
+  padding: 6rpx 20rpx;
+}
+
+/* ------------------------------ Card shells ----------------------------- */
+
+.mine-card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.mine-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 28rpx;
+  border-bottom: 1rpx solid rgba(0, 0, 0, 0.06);
+}
+
+.mine-card__title {
+  flex: 1;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.mine-card__more {
+  font-size: 24rpx;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.mine-orders {
+  display: flex;
+  padding: 12rpx 0 24rpx;
+}
+
+.mine-orders__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  padding: 20rpx 0;
+}
+
+.mine-orders__label {
+  font-size: 24rpx;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+/* -------------------------------- Cells --------------------------------- */
+
+.mine-cell {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 30rpx 28rpx;
+}
+
+.mine-cell + .mine-cell {
+  border-top: 1rpx solid rgba(0, 0, 0, 0.06);
+}
+
+/* mine.html .cell-icon: blue action icon on an #f0f6ff tile */
+.mine-cell__icon {
+  flex: none;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 16rpx;
+  background: #f0f6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mine-cell__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 28rpx;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.mine-cell__note {
+  font-size: 26rpx;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.mine-cell__note--red {
+  color: #e64340;
+  font-weight: 600;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.mine-cell--hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* -------------------------------- Logout -------------------------------- */
+
+.mine-logout {
+  margin-top: 24rpx;
+}
+
+/* -------------------------------- Guest --------------------------------- */
+
+.mine-guest {
+  margin-top: 96rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 96rpx 48rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48rpx;
+}

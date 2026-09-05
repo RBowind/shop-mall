@@ -1,0 +1,27 @@
+{
+  "name": "shop-mall",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=24.0.0 <25.0.0",
+    "pnpm": ">=10.0.0 <11.0.0"
+  },
+  "scripts": {
+    "generate": "pnpm --filter @shop-mall/openapi run generate",
+    "contract-check": "pnpm --filter @shop-mall/openapi run contract:check",
+    "lint": "pnpm -r --if-present lint",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@swc/core",
+      "@tarojs/binding",
+      "core-js",
+      "core-js-pure",
+      "esbuild"
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+.turbo/
+
+.env
+.env.*
+!.env.example
+
+*.log
+.DS_Store
+
+backend/bin/
+backend/tmp/
+
+# Deployment-only generated TLS assets (self-signed local)
+deploy/env/certs/
+
+# admin E2E loop build/runtime artifacts
+admin/e2e/.build/
+admin/e2e/lib/.build/
+admin/e2e/results/
+
+# admin E2E self-signed HTTPS cert (regenerate via e2e/certs/generate-certs.sh)
+admin/e2e/certs/*.pem
+
+# Umi generated runtime (dev + production build)
+admin/src/.umi/
+admin/src/.umi-production/
+
+# Taro SWC plugin cache
+miniapp/.swc/
+
+# Local verification screenshots (dev only)
+miniapp/.verify/

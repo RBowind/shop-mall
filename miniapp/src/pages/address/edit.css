@@ -1,0 +1,41 @@
+/* Address edit form — grouped white cards (16rpx radius) on #f5f5f5 with a
+   fixed blue save bar, per the brand spec. Page-level rules override the
+   legacy global ones (page.wxss loads after app.wxss). */
+
+/* Reserve room for the fixed save bar. */
+.address-edit {
+  padding-bottom: 160rpx;
+}
+
+.address-form-card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  margin-bottom: 20rpx;
+}
+
+.address-form-card__detail-error {
+  display: block;
+  padding: 0 32rpx 20rpx;
+  font-size: 26rpx;
+}
+
+/* Override the global legacy row: keep it on the card language. */
+.address-default-row {
+  background: #ffffff;
+  border-radius: 16rpx;
+  margin-top: 0;
+  margin-bottom: 20rpx;
+}
+
+/* Fixed bottom save bar. */
+.address-form-submit {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ffffff;
+  border-top: 1rpx solid rgba(0, 0, 0, 0.06);
+  padding: 16rpx 24rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+}

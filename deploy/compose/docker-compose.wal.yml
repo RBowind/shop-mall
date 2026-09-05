@@ -1,0 +1,38 @@
+# Production WAL-archiving override. Activates PostgreSQL WAL archiving into a
+# persistent volume and gives the postgres container a mount for base backups.
+# Without this, the at-least-hourly WAL archive policy (RPO <= 1h) cannot be
+# guaranteed and backup-db.sh will skip the base backup.
+#
+# Deploy with:
+#   docker compose -f deploy/compose/docker-compose.yml \
+#                 -f deploy/compose/docker-compose.wal.yml up -d
+#
+# The override starts the postgres container with archive_mode=on; toggling
+# archive_mode requires a postgres restart, so apply this override as part of a
+# planned restart, not during a shipping window.
+#
+# Ship the two volumes off-server at least weekly (backup-db.sh / a cron copy).
+# The volume names are project-prefixed, e.g. with the default project this is
+# <project>_backup-wal and <project>_backup-base:
+#   docker run --rm -v <project>_backup-wal:/wal -v <store>:/store alpine \
+#     sh -c 'cp -a /wal/. /store/wal/'
+#   docker run --rm -v <project>_backup-base:/base -v <store>:/store alpine \
+#     sh -c 'cp -a /base/. /store/base/'
+services:
+  postgres:
+    command:
+      - "-c"
+      - "wal_level=replica"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "archive_mode=on"
+      - "-c"
+      - "archive_command=test ! -f /var/backups/wal/%f && cp %p /var/backups/wal/%f"
+    volumes:
+      - backup-wal:/var/backups/wal
+      - backup-base:/var/backups/base
+
+volumes:
+  backup-wal:
+  backup-base:

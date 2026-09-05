@@ -1,0 +1,109 @@
+/**
+ * Category page layout — mirrors the OpenDesign category.html:
+ * white search strip on top, then a white vertical rail (176rpx ≈ the
+ * prototype's 88px @ ×2) against the gray content pane. Active rail item is
+ * red text + a 6rpx left red bar; inactive is 60% black. The global app.css
+ * still owns the shared pieces (.page chrome, .product-grid, .search-entry);
+ * this file only overrides the category-specific geometry.
+ */
+
+.category-page {
+  padding: 0;
+  height: calc(100vh - 100rpx - env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* White strip behind the search pill (prototype: padding 8px 12px → 16/24rpx) */
+.category-search-strip {
+  flex: none;
+  background: #ffffff;
+  padding: 16rpx 24rpx;
+}
+
+/* The pill sits on white here (unlike home's gray page), so give it the
+   prototype's light-gray fill to keep it readable. `margin: 0` (shorthand)
+   is required: the global app.css sets `.category-page .search-entry`
+   margin 24rpx 24rpx 0, which would otherwise inset the pill twice. */
+.category-search-strip .search-entry {
+  margin: 0;
+  background: #f5f5f5;
+}
+
+/* margin-top: 0 cancels the global `.category-body { margin-top: 16rpx }`
+   gray gap — the prototype's rail+pane block sits flush under the strip. */
+.category-body {
+  flex: 1;
+  min-height: 0;
+  margin-top: 0;
+  display: flex;
+  background: #ffffff;
+}
+
+/* Left rail: white, own scroll, hairline separation from the gray pane */
+.category-sidebar {
+  width: 176rpx;
+  flex: none;
+  height: 100%;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.category-item {
+  position: relative;
+  padding: 32rpx 16rpx;
+  text-align: center;
+  font-size: 26rpx;
+  line-height: 1.4;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.category-item--active {
+  background: #f5f5f5;
+  color: #e64340;
+  font-weight: 700;
+}
+
+.category-item--active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 24rpx;
+  bottom: 24rpx;
+  width: 6rpx;
+  border-radius: 4rpx;
+  background: #e64340;
+}
+
+/* Right pane: gray, own scroll */
+.category-content {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 20rpx;
+  box-sizing: border-box;
+  background: #f5f5f5;
+}
+
+.category-count {
+  display: block;
+  padding: 20rpx 4rpx 0;
+  font-size: 22rpx;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.category-content .product-grid {
+  padding-top: 20rpx;
+  padding-bottom: 40rpx;
+}
+
+.load-more {
+  text-align: center;
+  padding: 16rpx 0 40rpx;
+}
+
+.load-more__text {
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 24rpx;
+}

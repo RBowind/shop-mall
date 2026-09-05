@@ -1,0 +1,216 @@
+/**
+ * Checkout page styles — OpenDesign checkout prototype (px ×2 = rpx).
+ *
+ * One white 订单确认 card on #f5f5f5: address row, hairline, compact item
+ * lines, grey note, 积分合计 big red row, full-width blue 确认兑换. Below it
+ * a white 积分余额 card. Global app.css (owned by another domain) still
+ * carries the old .checkout-* rules; this file only defines the new ck-*
+ * classes used by the rewritten markup.
+ */
+
+.ck-card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 28rpx 24rpx;
+}
+
+.ck-card__title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.9);
+  margin-bottom: 20rpx;
+}
+
+/* ------------------------------ Address ----------------------------- */
+
+.ck-addr {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 16rpx 8rpx;
+  border-radius: 12rpx;
+}
+
+.ck-addr--active {
+  background: #f0f6ff;
+}
+
+.ck-addr__icon {
+  flex: none;
+}
+
+.ck-addr__lines {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.ck-addr__receiver-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.ck-addr__receiver {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.ck-addr__default {
+  flex: none;
+  font-size: 20rpx;
+  font-weight: 600;
+  color: #0052d9;
+  background: #f0f6ff;
+  border-radius: 6rpx;
+  padding: 2rpx 10rpx;
+  line-height: 1.6;
+}
+
+.ck-addr__detail {
+  font-size: 24rpx;
+  color: rgba(0, 0, 0, 0.4);
+  line-height: 1.5;
+}
+
+.ck-addr__swap {
+  flex: none;
+  font-size: 24rpx;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+/* ------------------------------ Hairline ---------------------------- */
+
+.ck-hairline {
+  height: 2rpx;
+  background: rgba(0, 0, 0, 0.06);
+  margin: 16rpx 0;
+}
+
+/* ------------------------------- Items ------------------------------ */
+
+.ck-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 16rpx 8rpx;
+}
+
+.ck-item__image {
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 12rpx;
+  flex: none;
+  background: #f0f0f0;
+}
+
+.ck-item__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.ck-item__name {
+  font-size: 26rpx;
+  line-height: 1.4;
+  color: rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ck-item__unit {
+  font-size: 22rpx;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.ck-item__qty {
+  flex: none;
+  font-size: 24rpx;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.ck-note {
+  display: block;
+  font-size: 22rpx;
+  color: rgba(0, 0, 0, 0.4);
+  padding: 8rpx 8rpx 0;
+}
+
+/* ------------------------------ Total ------------------------------- */
+
+.ck-total {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+  padding: 8rpx;
+}
+
+.ck-total__label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.ck-total__num {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #e64340;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ck-total__unit {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #e64340;
+}
+
+.ck-insufficient {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #d54941;
+  padding: 12rpx 8rpx 0;
+}
+
+/* ------------------------------ Submit ------------------------------ */
+
+.ck-submit {
+  margin-top: 32rpx;
+}
+
+.ck-submit .t-button,
+.ck-submit t-button {
+  width: 100%;
+}
+
+/* ------------------------------ Balance ----------------------------- */
+
+.ck-balance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 28rpx 24rpx;
+  margin-top: 20rpx;
+}
+
+.ck-balance__label {
+  font-size: 28rpx;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.ck-balance__value {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.9);
+  font-variant-numeric: tabular-nums;
+}
