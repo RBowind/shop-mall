@@ -1,7 +1,7 @@
 node_modules/
 .pnpm-store/
 dist/
-coverage/
+/coverage/
 .turbo/
 
 .env
@@ -34,3 +34,7 @@ miniapp/.swc/
 
 # Local verification screenshots (dev only)
 miniapp/.verify/
+
+# go test coverage artifacts (diff coverage gate)
+cover.out
+coverage.xml

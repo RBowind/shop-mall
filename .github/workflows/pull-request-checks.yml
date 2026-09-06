@@ -1,5 +1,8 @@
-name: CI
+name: Pull Request Checks
 
+# 合门前检查：contract / backend / frontend / coverage 四道，加上
+# release-artifacts.yml 里的 deployment，共五道 required checks。
+# coverage 只在 pull_request 事件跑（改动行口径依赖 base 分支）。
 on:
   pull_request:
   push:
@@ -25,11 +28,6 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 10.33.0
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.27.x
 
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
@@ -74,26 +72,34 @@ jobs:
       - name: Build and check frontend packages
         run: make frontend-checks
 
-  deployment:
+  coverage:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: 1.27.x
+          cache-dependency-path: backend/go.sum
 
-      - name: Validate Compose and migration configuration
-        run: make migration-config-check
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Run migration service
-        run: docker compose -f deploy/compose/docker-compose.yml run --rm migration-test
+      - name: Install diff-cover
+        run: pip install diff-cover==10.5.1
 
-      - name: Build backend image
-        run: make image-build
-
-      - name: Clean up migration services
-        if: always()
-        run: docker compose -f deploy/compose/docker-compose.yml down --volumes --remove-orphans
+      # PR 上对比 base 分支挡合并；push main 上对比上一个提交做主干体检，
+      # 两种事件都产出 coverage 检查，分支保护下拉里才选得到它。
+      - name: Changed-line coverage gate (>= 80%)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            make diff-coverage COMPARE="origin/${{ github.base_ref }}"
+          else
+            make diff-coverage COMPARE="HEAD^1"
+          fi

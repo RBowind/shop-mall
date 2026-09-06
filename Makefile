@@ -9,7 +9,7 @@ COMPOSE_FILE ?= deploy/compose/docker-compose.yml
 # Local baseline verified on 2026-08-10:
 # Go 1.27.1, Node 24.18.0, pnpm 10.33.0, Docker Compose v5.2.0.
 
-.PHONY: lint test build generate contract-check frontend-checks migration-config-check image-build compose-up test-concurrency test-e2e test-security backup-db backup-images restore-drill preflight smoke rollback
+.PHONY: lint test build generate contract-check frontend-checks diff-coverage migration-config-check image-build compose-up test-concurrency test-e2e test-security backup-db backup-images restore-drill preflight smoke rollback
 
 lint:
 	$(MAKE) -C backend lint
@@ -34,6 +34,14 @@ frontend-checks:
 	$(PNPM) --filter admin test
 	$(PNPM) --filter miniapp build:weapp
 	$(PNPM) --filter admin build
+
+# 第五道门（仅 PR 口径）：改动行覆盖率。CI 与本地共用同一脚本，
+# COMPARE / FAIL_UNDER 可覆盖默认值（origin/main / 80）。
+COMPARE ?= origin/main
+FAIL_UNDER ?= 80
+
+diff-coverage:
+	bash tools/coverage/diff-cover.sh "$(COMPARE)" "$(FAIL_UNDER)"
 
 migration-config-check:
 	@set -eu; \

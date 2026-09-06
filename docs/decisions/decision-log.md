@@ -45,3 +45,10 @@
 
 - 为什么：体量小，一台机器够；Compose 编排 nginx + 后端 + PostgreSQL。
 - 边界：单点，生产要加健康检查、备份和降级预案。
+
+## CI 门禁：合门前检查 + 合门后产物两段式
+
+- 决策：`.github/workflows` 拆成 `pull-request-checks.yml`（合门前五道确定性检查：contract / backend / frontend / deployment / coverage）和 `release-artifacts.yml`（push main 跑主干体检并构建后端镜像）；deployment 类检查同样挂 PR 触发，迁移挂了镜像不产出。
+- 为什么：单文件 ci.yml 里"挡合并的"和"出产物的"混在一起；拆开后触发器即语义。第五道 coverage 门防 AI 刷测试指标——口径只看 PR 改动行（阈值在 workflow 配置里，正文不复述数字）。变异测试每变异点重连库重跑是分钟级，当 PR 门会把等待时间炸掉，故走夜跑报告，数据够了再议升格。
+- 选型记录：改动行覆盖率用 diff-cover（Bachmann1234/diff-cover）+ gocover-cobertura 转换管道，不用 go-test-coverage（vladopajic）——源码核实其 diff 是"总覆盖率相对 base 可降幅度"，不是改动行口径；axw/gocov 钉死的老版 x/tools 在 Go 1.27 编译失败，一并排除；不接 Codecov SaaS，红灯判定留在仓内可查。
+- 边界：main 开 required checks + enforce admins，不开 required approvals（单人仓库，配了 PR 永远锁死）；一键发布/回滚和 claude-code-action AI 初审归下一课，本仓库不装。

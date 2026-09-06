@@ -58,8 +58,21 @@
 |---|---|
 | **AuditLog（审计日志）** | `audit_logs` 表的一行；append-only；DB 触发器禁止 UPDATE / DELETE；记录操作人 / 动作 / 对象 / 结果 / trace_id |
 
+### 1.7 门禁与合并
+
+| 术语 | 定义 |
+|---|---|
+| **质量门（gate）** | 挂进流水线、机器判定的确定性检查；只有质量门有 required check 资格。AI 初审意见是 advisory（参考），不进门 |
+| **合门前检查（pre-merge checks）** | 每个 PR 必跑的检查集合，全绿才允许合并；红灯锁死 = required check 失败时 GitHub 拒绝合并的状态 |
+| **合门后体检（post-merge checks）** | push 到 main 后跑的检查 + 后端镜像构建；产出发布产物，不承担挡合并的职责 |
+| **改动行覆盖率（diff coverage）** | 只统计本次 PR 改动行的覆盖率口径；刻意区别于全仓总覆盖率，防凑数测试刷总量 |
+| **变异效力（test efficacy）** | 变异测试工具判定的测试套件杀伤率，衡量"测试是不是假的"；当前为夜跑报告，非合并门 |
+| **演示分支（demo branch）** | 仓库常驻的教学分支（`broken-test`、`untested-change`），专用于演示红灯锁死；PR 开而不合 |
+
+_Avoid_: 用"覆盖率"裸指总量口径（门禁语境一律先问是不是改动行口径）；用"检查"混指 advisory 与门。
+
 ## 2. 引用约定
 
 - 旧文档（`prd.md`）的「待发货」对应 `paid`；「已发货」对应 `shipped`；「待支付」对应 `pending_payment`；「已取消」对应 `cancelled`。
 - US / AC 描述里凡出现数值（时限 / 上限 / 阈值），引用 `tasks/prd-shop-mall.md` 附录 A 的配置项原名，不在文档体里复述数字。
-- 本表新增术语需在 `docs/adr/` 留 ADR，否则视同口径漂移。
+- 本表新增术语需在 `docs/decisions/decision-log.md` 留一条决策记录，否则视同口径漂移。
