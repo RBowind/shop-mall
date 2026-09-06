@@ -1,0 +1,40 @@
+name: Mutation Nightly
+
+# 变异测试夜跑：每个变异点都要重连库重跑集成测试，是分钟级到小时级的活，
+# 不进 required checks、不挡合并，只出报告攒基线（见 docs/decisions/decision-log.md）。
+# 红一次 = 昨晚的测试抓不住某些故意改坏，报告看 Actions artifact。
+on:
+  schedule:
+    # 每天 02:30 GMT+8
+    - cron: "30 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gremlins:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.27.x
+          cache-dependency-path: backend/go.sum
+
+      - name: Unleash gremlins on backend
+        working-directory: backend
+        run: |
+          go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+          "$(go env GOPATH)/bin/gremlins" unleash 2>&1 | tee gremlins-report.log
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gremlins-nightly-report
+          path: backend/gremlins-report.log
