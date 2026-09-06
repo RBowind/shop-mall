@@ -1,0 +1,2485 @@
+openapi: 3.1.0
+info:
+  title: Shop Mall API
+  version: 1.0.0
+  license:
+    name: Proprietary
+    identifier: internal
+  description: |
+    The single source of truth for the buyer and admin APIs.
+    All timestamps are RFC3339 UTC. Points, prices, stock, and quantities are integers.
+    Public int64 values are serialized as decimal strings to preserve precision in JavaScript.
+    Administrator authentication uses admin_access_token with a 30-minute lifetime and
+    attributes HttpOnly; Secure; SameSite=Strict; Path=/api/admin/v1. csrf_token is a
+    Secure; SameSite=Strict; Path=/api/admin/v1 cookie readable by the frontend, but it
+    is never an identity credential. The server rotates csrf_token at login, requires
+    every administrator write's X-CSRF-Token to exactly match the csrf_token cookie,
+    clears both cookies with Max-Age=0 and the same attributes on logout, and accepts
+    writes only from an allowed HTTPS Origin. Missing or invalid Origin and missing or
+    mismatched CSRF values return 403 with a CSRF/Origin error. Login is the only
+    administrator write that does not require an existing CSRF token, but it still
+    validates Origin and rate limits by username and IP.
+servers:
+  - url: https://api.shop-mall.invalid
+    description: Deployment replaces this logical server URL with PUBLIC_BASE_URL.
+tags:
+  - name: buyer-auth
+    description: Buyer authentication.
+  - name: products
+    description: Public product browsing.
+  - name: buyer
+    description: Authenticated buyer operations.
+  - name: admin-auth
+    description: Administrator authentication.
+  - name: admin-products
+    description: Administrator product management.
+  - name: admin-orders
+    description: Administrator order processing.
+  - name: admin-refunds
+    description: Administrator refund review.
+  - name: admin-assets
+    description: Administrator image uploads.
+  - name: admin-access
+    description: Administrator roles and permissions.
+  - name: admin-points
+    description: Administrator points adjustments.
+  - name: operations
+    description: Internal health checks.
+paths:
+  /health/live:
+    get:
+      tags: [operations]
+      operationId: healthLive
+      summary: Check process liveness
+      security: []
+      responses:
+        '200':
+          description: Process is alive.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /health/ready:
+    get:
+      tags: [operations]
+      operationId: healthReady
+      summary: Check dependency readiness
+      security: []
+      responses:
+        '200':
+          description: Dependencies are ready.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /metrics:
+    get:
+      tags: [operations]
+      operationId: metrics
+      summary: Expose Prometheus metrics
+      description: Internal monitoring endpoint; network access control is required.
+      security: []
+      responses:
+        '200':
+          description: Prometheus text exposition format.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/auth/wx-login:
+    post:
+      tags: [buyer-auth]
+      operationId: wxLogin
+      summary: Log in with a WeChat code
+      description: The one-time WeChat code is consumed server-side and session_key is never persisted, returned, or logged.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WxLoginRequest'
+      responses:
+        '200':
+          description: Buyer login succeeded.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuyerLoginResponse'
+        '422':
+          $ref: '#/components/responses/BusinessError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/products:
+    get:
+      tags: [products]
+      operationId: listProducts
+      summary: List products on sale
+      description: Only products with status on_sale are returned. The category parameter restricts the result to one catalog key; keyword matches product names case-insensitively.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/ProductCategory'
+        - $ref: '#/components/parameters/ProductKeyword'
+      responses:
+        '200':
+          description: Products currently on sale, ordered by id descending.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/categories:
+    get:
+      tags: [products]
+      operationId: listCategories
+      summary: List the product category catalog
+      description: The static category catalog paired with the live on-sale product count of each category.
+      security: []
+      responses:
+        '200':
+          description: Category catalog in display order.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryInfo'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/products/{productId}:
+    get:
+      tags: [products]
+      operationId: getProduct
+      summary: Get a public product
+      description: A product with status off_sale is intentionally indistinguishable from a missing product and returns 404.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          description: Product detail.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/me:
+    get:
+      tags: [buyer]
+      operationId: getCurrentUser
+      summary: Get the current buyer profile
+      security:
+        - UserBearer: []
+      responses:
+        '200':
+          description: Current buyer profile.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags: [buyer]
+      operationId: updateCurrentUser
+      summary: Update the current buyer profile
+      security:
+        - UserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: Profile updated.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/BusinessError'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/me/avatar:
+    post:
+      tags: [buyer]
+      operationId: uploadAvatar
+      summary: Upload the current buyer's avatar
+      description: Accepts a JPEG, PNG, or WebP image up to the platform upload limit. The object key is generated server-side; the stored object becomes the buyer's avatar_url immediately.
+      security:
+        - UserBearer: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Avatar stored and profile updated.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/BusinessError'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/cart:
+    get:
+      tags: [buyer]
+      operationId: getCart
+      summary: Get the current buyer cart
+      security:
+        - UserBearer: []
+      responses:
+        '200':
+          description: Current user's cart.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [buyer]
+      operationId: addCartItem
+      summary: Add a product to the cart
+      security:
+        - UserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemCreateRequest'
+      responses:
+        '200':
+          description: Cart item added.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItemResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/BusinessError'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/cart/{itemId}:
+    patch:
+      tags: [buyer]
+      operationId: updateCartItem
+      summary: Update a cart item quantity
+      security:
+        - UserBearer: []
+      parameters:
+        - $ref: '#/components/parameters/CartItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemUpdateRequest'
+      responses:
+        '200':
+          description: Cart item updated.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItemResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [buyer]
+      operationId: deleteCartItem
+      summary: Remove a cart item
+      security:
+        - UserBearer: []
+      parameters:
+        - $ref: '#/components/parameters/CartItemId'
+      responses:
+        '200':
+          $ref: '#/components/responses/EmptySuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/addresses:
+    get:
+      tags: [buyer]
+      operationId: listAddresses
+      summary: List the current buyer addresses
+      security:
+        - UserBearer: []
+      responses:
+        '200':
+          description: Current user's addresses.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [buyer]
+      operationId: createAddress
+      summary: Create a buyer address
+      security:
+        - UserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressCreateRequest'
+      responses:
+        '201':
+          description: Address created.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/BusinessError'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/addresses/{addressId}:
+    patch:
+      tags: [buyer]
+      operationId: updateAddress
+      summary: Update a buyer address
+      security:
+        - UserBearer: []
+      parameters:
+        - $ref: '#/components/parameters/AddressId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressUpdateRequest'
+      responses:
+        '200':
+          description: Address updated.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [buyer]
+      operationId: deleteAddress
+      summary: Delete a buyer address
+      security:
+        - UserBearer: []
+      parameters:
+        - $ref: '#/components/parameters/AddressId'
+      responses:
+        '200':
+          $ref: '#/components/responses/EmptySuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/orders:
+    get:
+      tags: [buyer]
+      operationId: listOrders
+      summary: List the current buyer orders
+      security:
+        - UserBearer: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/OrderStatus'
+      responses:
+        '200':
+          description: Current user's orders.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [buyer]
+      operationId: createOrder
+      summary: Create or replay an order idempotently
+      description: |
+        The server computes request_hash from the selected cart item IDs and quantities,
+        address ID, the current address version, and the server-side address snapshot.
+        It does not trust a client price or address snapshot. On successful creation,
+        the selected cart items are deleted in the same database transaction as the
+        order, inventory, points, and ledger changes. A replay with the same token and
+        hash returns the original order without repeating side effects.
+      security:
+        - UserBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+      responses:
+        '200':
+          description: Order created or idempotently replayed.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/BusinessError'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/orders/{orderId}:
+    get:
+      tags: [buyer]
+      operationId: getOrder
+      summary: Get a buyer-owned order
+      security:
+        - UserBearer: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Current user's order detail.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/orders/{orderId}/refund:
+    post:
+      tags: [buyer]
+      operationId: requestRefund
+      summary: Request a refund for a buyer-owned order
+      security:
+        - UserBearer: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundRequest'
+      responses:
+        '200':
+          description: Refund requested.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/orders/{orderId}/confirm:
+    post:
+      tags: [buyer]
+      operationId: confirmOrder
+      summary: Confirm receipt of a buyer-owned order
+      security:
+        - UserBearer: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Order confirmed.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/points/ledger:
+    get:
+      tags: [buyer]
+      operationId: listPointsLedger
+      summary: List the current buyer points ledger
+      security:
+        - UserBearer: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Current user's points ledger.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/auth/login:
+    post:
+      tags: [admin-auth]
+      operationId: adminLogin
+      summary: Log in an administrator
+      description: |
+        On success the server sets admin_access_token with a 30-minute lifetime and
+        HttpOnly; Secure; SameSite=Strict; Path=/api/admin/v1. It also sets csrf_token as
+        a Secure; SameSite=Strict; Path=/api/admin/v1 cookie readable by frontend code;
+        csrf_token cannot authenticate the user and is rotated at every successful login.
+        The login request is exempt from the CSRF header requirement because no session
+        exists yet, but Origin must be an allowed HTTPS origin. Missing or invalid Origin
+        returns 403 with a CSRF/Origin error.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLoginRequest'
+      responses:
+        '200':
+          description: Login succeeded and sets admin_access_token and csrf_token cookies.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+            Set-Cookie:
+              description: Sets admin_access_token with 30-minute Max-Age, HttpOnly; Secure; SameSite=Strict; Path=/api/admin/v1 and csrf_token with Secure; SameSite=Strict; Path=/api/admin/v1.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/auth/logout:
+    post:
+      tags: [admin-auth]
+      operationId: adminLogout
+      summary: Log out the current administrator
+      description: |
+        The server requires an allowed HTTPS Origin and an X-CSRF-Token value that exactly
+        matches the csrf_token cookie, then clears admin_access_token and csrf_token with
+        Max-Age=0 while preserving HttpOnly; Secure; SameSite=Strict; Path=/api/admin/v1.
+        Missing or invalid Origin and missing or mismatched CSRF values return 403 with a
+        CSRF/Origin error.
+      security:
+        - AdminCookie: []
+          CsrfCookie: []
+          CsrfToken: []
+      x-required-permission: admin:self
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminLogoutSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/auth/password:
+    post:
+      tags: [admin-auth]
+      operationId: changeAdminPassword
+      summary: Change the current administrator password
+      description: The request requires an allowed HTTPS Origin and an X-CSRF-Token value that exactly matches the csrf_token cookie. Missing or invalid Origin and missing or mismatched CSRF values return 403. A successful password change increments token_version and invalidates existing administrator JWTs.
+      security:
+        - AdminCookie: []
+          CsrfCookie: []
+          CsrfToken: []
+      x-required-permission: admin:self
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/EmptySuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/BusinessError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/products:
+    get:
+      tags: [admin-products]
+      operationId: adminListProducts
+      summary: List products for administrators
+      security:
+        - AdminCookie: []
+      x-required-permission: product:read
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/ProductStatus'
+      responses:
+        '200':
+          $ref: '#/components/responses/ProductListSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [admin-products]
+      operationId: adminCreateProduct
+      summary: Create a product
+      description: This administrator write requires an allowed HTTPS Origin and an X-CSRF-Token value that exactly matches the csrf_token cookie; missing or invalid Origin or CSRF values return 403.
+      security:
+        - AdminCookie: []
+          CsrfCookie: []
+          CsrfToken: []
+      x-required-permission: product:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductWriteRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ProductSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/BusinessError'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/products/{productId}:
+    get:
+      tags: [admin-products]
+      operationId: adminGetProduct
+      summary: Get a product for administrators
+      security:
+        - AdminCookie: []
+      x-required-permission: product:read
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          $ref: '#/components/responses/ProductSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags: [admin-products]
+      operationId: adminUpdateProduct
+      summary: Update a product
+      description: This administrator write requires an allowed HTTPS Origin and an X-CSRF-Token value that exactly matches the csrf_token cookie; missing or invalid Origin or CSRF values return 403.
+      security:
+        - AdminCookie: []
+          CsrfCookie: []
+          CsrfToken: []
+      x-required-permission: product:write
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductWriteRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ProductSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/images:
+    post:
+      tags: [admin-assets]
+      operationId: uploadImage
+      summary: Upload a product image
+      description: This administrator write requires an allowed HTTPS Origin and an X-CSRF-Token value that exactly matches the csrf_token cookie; missing or invalid Origin or CSRF values return 403. The upload is limited to JPEG, PNG, or WebP and 2 MiB.
+      security:
+        - AdminCookie: []
+          CsrfCookie: []
+          CsrfToken: []
+      x-required-permission: image:write
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: JPEG, PNG, or WebP; maximum 2 MiB.
+      responses:
+        '201':
+          description: Image uploaded.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/BusinessError'
+        '507':
+          $ref: '#/components/responses/InsufficientStorage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/orders:
+    get:
+      tags: [admin-orders]
+      operationId: adminListOrders
+      summary: List orders for administrators
+      security:
+        - AdminCookie: []
+      x-required-permission: order:read
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/OrderStatus'
+      responses:
+        '200':
+          $ref: '#/components/responses/OrderListSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/orders/{orderId}:
+    get:
+      tags: [admin-orders]
+      operationId: adminGetOrder
+      summary: Get an order for administrators
+      security:
+        - AdminCookie: []
+      x-required-permission: order:read
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          $ref: '#/components/responses/OrderSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/orders/{orderId}/ship:
+    post:
+      tags: [admin-orders]
+      operationId: shipOrder
+      summary: Ship an order
+      description: This administrator write requires an allowed HTTPS Origin and an X-CSRF-Token value that exactly matches the csrf_token cookie; missing or invalid Origin or CSRF values return 403. Only paid orders transition to shipped.
+      security:
+        - AdminCookie: []
+          CsrfCookie: []
+          CsrfToken: []
+      x-required-permission: order:ship
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          $ref: '#/components/responses/OrderSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/refunds:
+    get:
+      tags: [admin-refunds]
+      operationId: adminListRefunds
+      summary: List refund requests
+      security:
+        - AdminCookie: []
+      x-required-permission: refund:read
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/OrderListSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/refunds/{orderId}/approve:
+    post:
+      tags: [admin-refunds]
+      operationId: approveRefund
+      summary: Approve a refund request
+      description: This administrator write requires an allowed HTTPS Origin and an X-CSRF-Token value that exactly matches the csrf_token cookie; missing or invalid Origin or CSRF values return 403. The status transition, points refund, ledger entry, and stock restoration are one transaction.
+      security:
+        - AdminCookie: []
+          CsrfCookie: []
+          CsrfToken: []
+      x-required-permission: refund:approve
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          $ref: '#/components/responses/OrderSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/refunds/{orderId}/reject:
+    post:
+      tags: [admin-refunds]
+      operationId: rejectRefund
+      summary: Reject a refund request
+      description: This administrator write requires an allowed HTTPS Origin and an X-CSRF-Token value that exactly matches the csrf_token cookie; missing or invalid Origin or CSRF values return 403. Rejection changes only the refund state and audit fields; it does not refund points or stock.
+      security:
+        - AdminCookie: []
+          CsrfCookie: []
+          CsrfToken: []
+      x-required-permission: refund:approve
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundRejectRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/OrderSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/points/adjust:
+    post:
+      tags: [admin-points]
+      operationId: adjustPoints
+      summary: Adjust buyer points
+      description: This administrator write requires an allowed HTTPS Origin and an X-CSRF-Token value that exactly matches the csrf_token cookie; missing or invalid Origin or CSRF values return 403. Idempotency-Key is part of the server-generated ledger event key.
+      security:
+        - AdminCookie: []
+          CsrfCookie: []
+          CsrfToken: []
+      x-required-permission: points:adjust
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PointsAdjustRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/LedgerSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/BusinessError'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/roles:
+    get:
+      tags: [admin-access]
+      operationId: listRoles
+      summary: List roles and permissions
+      description: Administrator creation is bootstrap-only in v1; this operation lists existing roles and permissions.
+      security:
+        - AdminCookie: []
+      x-required-permission: role:manage
+      responses:
+        '200':
+          description: Roles and permissions.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [admin-access]
+      operationId: createRole
+      summary: Create a role
+      description: This administrator write requires an allowed HTTPS Origin and an X-CSRF-Token value that exactly matches the csrf_token cookie; missing or invalid Origin or CSRF values return 403. Unknown permission codes are rejected with 422.
+      security:
+        - AdminCookie: []
+          CsrfCookie: []
+          CsrfToken: []
+      x-required-permission: role:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleWriteRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/RoleSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/BusinessError'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/roles/{roleId}:
+    patch:
+      tags: [admin-access]
+      operationId: updateRole
+      summary: Update a role
+      description: This administrator write requires an allowed HTTPS Origin and an X-CSRF-Token value that exactly matches the csrf_token cookie; missing or invalid Origin or CSRF values return 403. Unknown permission codes are rejected with 422.
+      security:
+        - AdminCookie: []
+          CsrfCookie: []
+          CsrfToken: []
+      x-required-permission: role:manage
+      parameters:
+        - $ref: '#/components/parameters/RoleId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleUpdateRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/RoleSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/BusinessError'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/admin-users:
+    get:
+      tags: [admin-access]
+      operationId: listAdminUsers
+      summary: List administrator accounts
+      description: Administrator creation is bootstrap-only in v1; this operation lists existing accounts.
+      security:
+        - AdminCookie: []
+      x-required-permission: role:manage
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminUserListSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/admin/v1/admin-users/{adminUserId}:
+    patch:
+      tags: [admin-access]
+      operationId: updateAdminUser
+      summary: Enable, disable, or reassign an administrator
+      description: This administrator write requires an allowed HTTPS Origin and an X-CSRF-Token value that exactly matches the csrf_token cookie; missing or invalid Origin or CSRF values return 403. Administrator accounts cannot be deleted; enable, disable, and role reassignment remain API operations.
+      security:
+        - AdminCookie: []
+          CsrfCookie: []
+          CsrfToken: []
+      x-required-permission: role:manage
+      parameters:
+        - $ref: '#/components/parameters/AdminUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUserUpdateRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminUserSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/BusinessError'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+components:
+  securitySchemes:
+    UserBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Buyer JWT. The token is sent in the Authorization header and is never stored in an administrator cookie.
+    AdminCookie:
+      type: apiKey
+      in: cookie
+      name: admin_access_token
+      description: Administrator JWT cookie with a 30-minute lifetime and HttpOnly; Secure; SameSite=Strict; Path=/api/admin/v1. It is cleared on logout or token invalidation and cannot be read by frontend JavaScript.
+    CsrfCookie:
+      type: apiKey
+      in: cookie
+      name: csrf_token
+      description: Secure; SameSite=Strict; Path=/api/admin/v1 CSRF cookie. Frontend JavaScript may read it to copy the value into X-CSRF-Token; it is not an identity credential and is rotated at login.
+    CsrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: Required on every administrator write except login. The value must exactly match the csrf_token cookie; missing or mismatched values return 403 with a CSRF error.
+  headers:
+    TraceId:
+      description: Request trace identifier returned in the response body when the response uses the business envelope.
+      required: true
+      schema:
+        type: string
+        minLength: 1
+  parameters:
+    Page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: page_size
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+    ProductId:
+      name: productId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[1-9][0-9]*$'
+        x-public-int64: true
+        example: '1'
+    CartItemId:
+      name: itemId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[1-9][0-9]*$'
+        x-public-int64: true
+        example: '1'
+    AddressId:
+      name: addressId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[1-9][0-9]*$'
+        x-public-int64: true
+        example: '1'
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[1-9][0-9]*$'
+        x-public-int64: true
+        example: '1'
+    RoleId:
+      name: roleId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[1-9][0-9]*$'
+        x-public-int64: true
+        example: '1'
+    AdminUserId:
+      name: adminUserId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[1-9][0-9]*$'
+        x-public-int64: true
+        example: '1'
+    OrderStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/OrderStatus'
+    ProductStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/ProductStatus'
+    ProductCategory:
+      name: category
+      in: query
+      required: false
+      description: Restrict the listing to one category catalog key; empty or absent means every category.
+      schema:
+        $ref: '#/components/schemas/CategoryKey'
+    ProductKeyword:
+      name: keyword
+      in: query
+      required: false
+      description: Case-insensitive substring match against the product name.
+      schema:
+        type: string
+        maxLength: 64
+  responses:
+    AdminLogoutSuccess:
+      description: Logout succeeded and clears both administrator cookies.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+        Set-Cookie:
+          description: Clears admin_access_token and csrf_token with Max-Age=0 and HttpOnly; Secure; SameSite=Strict; Path=/api/admin/v1.
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EmptyResponse'
+    EmptySuccess:
+      description: Operation succeeded.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EmptyResponse'
+    ProductSuccess:
+      description: Product response.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProductResponse'
+    ProductListSuccess:
+      description: Product list response.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProductListResponse'
+    OrderSuccess:
+      description: Order response.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/OrderResponse'
+    OrderListSuccess:
+      description: Order list response.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/OrderListResponse'
+    LedgerSuccess:
+      description: Ledger response.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LedgerResponse'
+    RoleSuccess:
+      description: Role response.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RoleResponse'
+    AdminUserSuccess:
+      description: Administrator account response.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdminUserResponse'
+    AdminUserListSuccess:
+      description: Administrator account list response.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdminUserListResponse'
+    Unauthorized:
+      description: Authentication failed or token expired.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Authenticated but not permitted. This 403 also covers missing or invalid Origin and missing or mismatched X-CSRF-Token/csrf_token values.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource does not exist or is not owned by the buyer.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Idempotency or state transition conflict.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BusinessError:
+      description: Request is syntactically valid but violates business rules.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimited:
+      description: Too many requests.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    PayloadTooLarge:
+      description: Uploaded file is too large.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnsupportedMediaType:
+      description: File type is not supported.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InsufficientStorage:
+      description: Image storage is full.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: Service is not ready.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadRequest:
+      description: Request syntax or parameter format is invalid.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: Unexpected server error. Internal details are not exposed.
+      headers:
+        X-Trace-Id:
+          $ref: '#/components/headers/TraceId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          minimum: 1
+          enum: [1001, 1002, 1003, 1004, 2001, 2002, 3001, 3002, 4001, 4002, 5001]
+        data:
+          type: 'null'
+        message:
+          type: string
+        trace_id:
+          type: string
+          minLength: 1
+    EmptyResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          type: 'null'
+        message:
+          type: string
+        trace_id:
+          type: string
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, not_ready]
+    PageMeta:
+      type: object
+      required: [list, total, page, page_size]
+      properties:
+        list:
+          type: array
+          items: {}
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+    User:
+      type: object
+      required: [id, nickname, avatar_url, points_balance]
+      properties:
+        id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+        nickname:
+          type: string
+          maxLength: 64
+        avatar_url:
+          type: string
+          maxLength: 2048
+        points_balance:
+          type: string
+          pattern: '^[0-9]+$'
+          x-public-int64: true
+          example: '1000'
+    CategoryKey:
+      type: string
+      description: Stable category key from the catalog; empty means uncategorized.
+      maxLength: 32
+      example: digital
+    CategoryInfo:
+      type: object
+      required: [id, name, product_count]
+      properties:
+        id:
+          $ref: '#/components/schemas/CategoryKey'
+        name:
+          type: string
+          description: Chinese display label of the category.
+          example: 数码
+        product_count:
+          type: integer
+          description: Live count of on-sale products in this category.
+          minimum: 0
+    Product:
+      type: object
+      required: [id, name, description, category, main_image, images, price_points, stock, status]
+      properties:
+        id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+        name:
+          type: string
+          maxLength: 128
+        description:
+          type: string
+        category:
+          $ref: '#/components/schemas/CategoryKey'
+        main_image:
+          type: string
+          description: First gallery entry's public URL; kept for older clients. Empty when the product has no images.
+        images:
+          type: array
+          description: Ordered gallery of public image URLs. Position 0 is the main image shown in listings and carts; blanks and duplicates never appear; at most 9 entries.
+          maxItems: 9
+          items:
+            type: string
+        price_points:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '100'
+        stock:
+          type: integer
+          minimum: 0
+        status:
+          $ref: '#/components/schemas/ProductStatus'
+    ProductStatus:
+      type: string
+      enum: [on_sale, off_sale]
+    ProductWriteRequest:
+      type: object
+      required: [name, price_points, stock]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        description:
+          type: string
+        category:
+          description: Stable category key; empty or absent means uncategorized. Unknown keys are rejected with 422.
+          $ref: '#/components/schemas/CategoryKey'
+        images:
+          type: array
+          description: Full replacement gallery of previously uploaded image object keys, ordered (position 0 = main image). Blanks are dropped and duplicates collapse server-side; more than 9 entries is rejected with 422. An absent field on PATCH keeps the current gallery; an empty array clears it.
+          maxItems: 9
+          items:
+            type: string
+        price_points:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '100'
+        stock:
+          type: integer
+          minimum: 0
+        status:
+          $ref: '#/components/schemas/ProductStatus'
+    CartItem:
+      type: object
+      required: [id, product_id, quantity, product]
+      properties:
+        id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+        product_id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+        quantity:
+          type: integer
+          minimum: 1
+        product:
+          $ref: '#/components/schemas/Product'
+    Address:
+      type: object
+      required: [id, receiver, phone, region, detail, is_default, version]
+      properties:
+        id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+        receiver:
+          type: string
+          maxLength: 32
+        phone:
+          type: string
+          maxLength: 20
+        region:
+          type: string
+          maxLength: 64
+        detail:
+          type: string
+          maxLength: 255
+        is_default:
+          type: boolean
+        version:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          description: Optimistic-concurrency version. It is included in the server-side order request hash.
+          example: '3'
+    OrderStatus:
+      type: string
+      enum: [paid, shipped, completed, refund_requested, refunded]
+    OrderItem:
+      type: object
+      required: [product_id, product_name, product_image, price_snapshot, quantity]
+      properties:
+        product_id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+        product_name:
+          type: string
+        product_image:
+          type: string
+        price_snapshot:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '100'
+        quantity:
+          type: integer
+          minimum: 1
+    Order:
+      type: object
+      required: [id, order_no, status, total_points, receiver, phone, address, items, paid_at, shipped_at, completed_at, refunded_at, created_at]
+      properties:
+        id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+        order_no:
+          type: string
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        total_points:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '200'
+        receiver:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        paid_at:
+          type: string
+          format: date-time
+        shipped_at:
+          type: [string, 'null']
+          format: date-time
+        completed_at:
+          type: [string, 'null']
+          format: date-time
+        refunded_at:
+          type: [string, 'null']
+          format: date-time
+        refund_reason:
+          type: string
+        refund_reject_reason:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    LedgerEntry:
+      type: object
+      required: [id, type, delta, balance_after, remark, created_at]
+      properties:
+        id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+        order_id:
+          type: [string, 'null']
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+        type:
+          type: string
+          enum: [order_pay, order_refund, signup_bonus, admin_adjust]
+        delta:
+          type: string
+          pattern: '^-?[0-9]+$'
+          x-public-int64: true
+          x-public-int64-signed: true
+          example: '-100'
+        balance_after:
+          type: string
+          pattern: '^[0-9]+$'
+          x-public-int64: true
+          example: '900'
+        remark:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    Role:
+      type: object
+      required: [id, name, permissions]
+      properties:
+        id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+        name:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+    RoleResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          $ref: '#/components/schemas/Role'
+        message:
+          type: string
+        trace_id:
+          type: string
+    AdminUserResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          $ref: '#/components/schemas/AdminUser'
+        message:
+          type: string
+        trace_id:
+          type: string
+    AdminUserListResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          allOf:
+            - $ref: '#/components/schemas/PageMeta'
+            - type: object
+              properties:
+                list:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/AdminUser'
+        message:
+          type: string
+        trace_id:
+          type: string
+    RoleWriteRequest:
+      type: object
+      required: [name, permissions]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 32
+        permissions:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+    RoleUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 32
+        permissions:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+    AdminUser:
+      type: object
+      required: [id, username, enabled, role]
+      properties:
+        id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+        username:
+          type: string
+        enabled:
+          type: boolean
+        role:
+          $ref: '#/components/schemas/Role'
+    AdminUserUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        enabled:
+          type: boolean
+        role_id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+    WxLoginRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 512
+    BuyerLoginResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          type: object
+          required: [access_token, user]
+          properties:
+            access_token:
+              type: string
+            user:
+              $ref: '#/components/schemas/User'
+        message:
+          type: string
+        trace_id:
+          type: string
+    AdminLoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 32
+        password:
+          type: string
+          minLength: 12
+          maxLength: 128
+    AdminLoginResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          type: object
+          required: [admin_id, username, role]
+          properties:
+            admin_id:
+              type: string
+              pattern: '^[1-9][0-9]*$'
+              x-public-int64: true
+              example: '1'
+            username:
+              type: string
+            role:
+              $ref: '#/components/schemas/Role'
+        message:
+          type: string
+        trace_id:
+          type: string
+    PasswordChangeRequest:
+      type: object
+      required: [current_password, new_password]
+      properties:
+        current_password:
+          type: string
+          minLength: 1
+          maxLength: 128
+        new_password:
+          type: string
+          minLength: 12
+          maxLength: 128
+    UserUpdateRequest:
+      type: object
+      properties:
+        nickname:
+          type: string
+          maxLength: 64
+        avatar_url:
+          type: string
+          maxLength: 2048
+    CartItemCreateRequest:
+      type: object
+      required: [product_id, quantity]
+      properties:
+        product_id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+        quantity:
+          type: integer
+          minimum: 1
+    CartItemUpdateRequest:
+      type: object
+      required: [quantity]
+      properties:
+        quantity:
+          type: integer
+          minimum: 1
+    AddressCreateRequest:
+      type: object
+      required: [receiver, phone, region, detail]
+      properties:
+        receiver:
+          type: string
+          minLength: 1
+          maxLength: 32
+        phone:
+          type: string
+          minLength: 6
+          maxLength: 20
+        region:
+          type: string
+          minLength: 1
+          maxLength: 64
+        detail:
+          type: string
+          minLength: 1
+          maxLength: 255
+        is_default:
+          type: boolean
+          default: false
+    AddressUpdateRequest:
+      type: object
+      properties:
+        receiver:
+          type: string
+          minLength: 1
+          maxLength: 32
+        phone:
+          type: string
+          minLength: 6
+          maxLength: 20
+        region:
+          type: string
+          minLength: 1
+          maxLength: 64
+        detail:
+          type: string
+          minLength: 1
+          maxLength: 255
+        is_default:
+          type: boolean
+    OrderCreateRequest:
+      type: object
+      required: [cart_item_ids, address_id]
+      properties:
+        cart_item_ids:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            pattern: '^[1-9][0-9]*$'
+            x-public-int64: true
+            example: '1'
+        address_id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+    RefundRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 255
+    RefundRejectRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 255
+    PointsAdjustRequest:
+      type: object
+      required: [user_id, delta, remark]
+      properties:
+        user_id:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          x-public-int64: true
+          example: '1'
+        delta:
+          type: string
+          pattern: '^-?[1-9][0-9]*$'
+          x-public-int64: true
+          x-public-int64-signed: true
+          example: '100'
+        remark:
+          type: string
+          minLength: 1
+          maxLength: 255
+    ImageResponse:
+      type: object
+      required: [key, url, width, height, size]
+      properties:
+        key:
+          type: string
+        url:
+          type: string
+          format: uri
+        width:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+        size:
+          type: integer
+          minimum: 1
+    ProductResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          $ref: '#/components/schemas/Product'
+        message:
+          type: string
+        trace_id:
+          type: string
+    ProductListResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          allOf:
+            - $ref: '#/components/schemas/PageMeta'
+            - type: object
+              properties:
+                list:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Product'
+        message:
+          type: string
+        trace_id:
+          type: string
+    UserResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          $ref: '#/components/schemas/User'
+        message:
+          type: string
+        trace_id:
+          type: string
+    CartItemResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          $ref: '#/components/schemas/CartItem'
+        message:
+          type: string
+        trace_id:
+          type: string
+    CartResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          type: object
+          required: [list]
+          properties:
+            list:
+              type: array
+              items:
+                $ref: '#/components/schemas/CartItem'
+        message:
+          type: string
+        trace_id:
+          type: string
+    AddressResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          $ref: '#/components/schemas/Address'
+        message:
+          type: string
+        trace_id:
+          type: string
+    AddressListResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          type: object
+          required: [list]
+          properties:
+            list:
+              type: array
+              items:
+                $ref: '#/components/schemas/Address'
+        message:
+          type: string
+        trace_id:
+          type: string
+    OrderResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          $ref: '#/components/schemas/Order'
+        message:
+          type: string
+        trace_id:
+          type: string
+    OrderListResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          allOf:
+            - $ref: '#/components/schemas/PageMeta'
+            - type: object
+              properties:
+                list:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Order'
+        message:
+          type: string
+        trace_id:
+          type: string
+    LedgerResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          $ref: '#/components/schemas/LedgerEntry'
+        message:
+          type: string
+        trace_id:
+          type: string
+    LedgerListResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          allOf:
+            - $ref: '#/components/schemas/PageMeta'
+            - type: object
+              properties:
+                list:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/LedgerEntry'
+        message:
+          type: string
+        trace_id:
+          type: string
+    RoleListResponse:
+      type: object
+      required: [code, data, message, trace_id]
+      properties:
+        code:
+          type: integer
+          const: 0
+        data:
+          type: object
+          required: [list]
+          properties:
+            list:
+              type: array
+              items:
+                $ref: '#/components/schemas/Role'
+        message:
+          type: string
+        trace_id:
+          type: string
