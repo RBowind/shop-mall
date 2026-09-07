@@ -3,6 +3,13 @@ name: Pull Request Checks
 # 合门前检查：contract / backend / frontend / coverage 四道，加上
 # release-artifacts.yml 里的 deployment，共五道 required checks。
 # coverage 只在 pull_request 事件跑（改动行口径依赖 base 分支）。
+#
+# fast-pass 口径：required check 必须永远以 success/failure 出现，所以四道门的
+# job 本身永远跑，只把"真活"步骤用 needs.changes 短路——无相关改动即空跑透绿。
+# （job 级 if 跳过会让 check 变灰悬空，卡死分支保护，是反模式。）
+# 两类情况强制全量：push main（主干体检，squash/force-push 事故教训要求分支自洽）；
+# unknown 兜底命中（改到清单之外的路径，宁可多跑不可漏测）。
+# 每条 filter 即"哪些文件会波及这道门"的依赖口径，改依赖面时同步改这里。
 on:
   pull_request:
   push:
@@ -11,95 +18,208 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read # paths-filter 在 pull_request 上经 API 拉取改动文件清单
+
+# 同一 PR 连推多个 commit 时取消过时的 run；push main 的体检跑完整。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      contract: ${{ github.event_name != 'pull_request' || steps.filter.outputs.contract == 'true' || steps.filter.outputs.unknown == 'true' }}
+      backend: ${{ github.event_name != 'pull_request' || steps.filter.outputs.backend == 'true' || steps.filter.outputs.unknown == 'true' }}
+      frontend: ${{ github.event_name != 'pull_request' || steps.filter.outputs.frontend == 'true' || steps.filter.outputs.unknown == 'true' }}
+      coverage: ${{ github.event_name != 'pull_request' || steps.filter.outputs.coverage == 'true' || steps.filter.outputs.unknown == 'true' }}
+    steps:
+      # push main 恒为全量，filter 结果无意义，跳过（也避开 push 事件对完整历史的要求）。
+      - if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+      - if: github.event_name == 'pull_request'
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            # 契约真源、生成器、签入的生成产物，及 pnpm 安装面（Makefile/workspace/lock）。
+            contract:
+              - 'docs/api/openapi.yaml'
+              - 'tools/openapi/**'
+              - 'miniapp/src/services/generated/**'
+              - 'admin/src/services/generated/**'
+              - 'Makefile'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'miniapp/**'
+              - 'admin/**'
+              - 'Makefile'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+            coverage:
+              - 'backend/**'
+              - 'tools/coverage/**'
+              - 'Makefile'
+            # 兜底：不在已知作用域内的改动（含 workflow 自身、新增顶层目录）→ 四门全跑。
+            unknown:
+              - '**'
+              - '.github/**'
+              - '!backend/**'
+              - '!miniapp/**'
+              - '!admin/**'
+              - '!docs/**'
+              - '!specs/**'
+              - '!deploy/**'
+              - '!tools/**'
+              - '!Makefile'
+              - '!package.json'
+              - '!pnpm-lock.yaml'
+              - '!pnpm-workspace.yaml'
+              - '!*.md'
+
   contract:
     runs-on: ubuntu-latest
+    needs: changes
+    env:
+      RUN_CHECK: ${{ needs.changes.outputs.contract }}
     steps:
       - name: Check out source
+        if: env.RUN_CHECK == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Node.js
+        if: env.RUN_CHECK == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 24.x
 
       - name: Set up pnpm
+        if: env.RUN_CHECK == 'true'
         uses: pnpm/action-setup@v4
         with:
           version: 10.33.0
 
       - name: Install workspace dependencies
+        if: env.RUN_CHECK == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Check OpenAPI contract
+        if: env.RUN_CHECK == 'true'
         run: make contract-check
+
+      - name: Fast pass (no contract inputs changed)
+        if: env.RUN_CHECK != 'true'
+        run: echo "OpenAPI contract inputs untouched in this PR; fast pass."
 
   backend:
     runs-on: ubuntu-latest
+    needs: changes
+    env:
+      RUN_CHECK: ${{ needs.changes.outputs.backend }}
     steps:
       - name: Check out source
+        if: env.RUN_CHECK == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Go
+        if: env.RUN_CHECK == 'true'
         uses: actions/setup-go@v5
         with:
           go-version: 1.27.x
           cache-dependency-path: backend/go.sum
 
+      - name: Lint backend
+        if: env.RUN_CHECK == 'true'
+        run: make -C backend lint
+
+      # -race：并发缺陷只靠普通 test 抓不到，门禁必须带竞争检测。
       - name: Test backend
-        run: cd backend && go test ./...
+        if: env.RUN_CHECK == 'true'
+        run: cd backend && go test -race ./...
+
+      - name: Fast pass (no backend inputs changed)
+        if: env.RUN_CHECK != 'true'
+        run: echo "backend/ untouched in this PR; fast pass."
 
   frontend:
     runs-on: ubuntu-latest
+    needs: changes
+    env:
+      RUN_CHECK: ${{ needs.changes.outputs.frontend }}
     steps:
       - name: Check out source
+        if: env.RUN_CHECK == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Node.js
+        if: env.RUN_CHECK == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 24.x
 
       - name: Set up pnpm
+        if: env.RUN_CHECK == 'true'
         uses: pnpm/action-setup@v4
         with:
           version: 10.33.0
 
       - name: Install workspace dependencies
+        if: env.RUN_CHECK == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Build and check frontend packages
+        if: env.RUN_CHECK == 'true'
         run: make frontend-checks
+
+      - name: Fast pass (no frontend inputs changed)
+        if: env.RUN_CHECK != 'true'
+        run: echo "miniapp/ and admin/ untouched in this PR; fast pass."
 
   coverage:
     runs-on: ubuntu-latest
+    needs: changes
+    env:
+      RUN_CHECK: ${{ needs.changes.outputs.coverage }}
     steps:
       - name: Check out source
+        if: env.RUN_CHECK == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Go
+        if: env.RUN_CHECK == 'true'
         uses: actions/setup-go@v5
         with:
           go-version: 1.27.x
           cache-dependency-path: backend/go.sum
 
       - name: Set up Python
+        if: env.RUN_CHECK == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install diff-cover
+        if: env.RUN_CHECK == 'true'
         run: pip install diff-cover==10.5.1
 
       # PR 上对比 base 分支挡合并；push main 上对比上一个提交做主干体检，
       # 两种事件都产出 coverage 检查，分支保护下拉里才选得到它。
       - name: Changed-line coverage gate (>= 80%)
+        if: env.RUN_CHECK == 'true'
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             make diff-coverage COMPARE="origin/${{ github.base_ref }}"
           else
             make diff-coverage COMPARE="HEAD^1"
           fi
+
+      - name: Fast pass (no backend lines changed)
+        if: env.RUN_CHECK != 'true'
+        run: echo "No backend lines changed in this PR; changed-line coverage is vacuous. Fast pass."

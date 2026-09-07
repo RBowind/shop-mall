@@ -2,6 +2,9 @@ name: Release Artifacts
 
 # 合门前跑 deployment 检查（第五道门之前是四道里的第四道），合门后顺带产出发布镜像。
 # 触发器即语义：pull_request = 挡合并的门，push main = 主干体检 + 镜像产物。
+#
+# fast-pass 口径同 pull-request-checks.yml：deployment job 永远跑、check 永远以
+# success/failure 出现，只有真活步骤按路径短路；push main 与 unknown 兜底强制全量。
 on:
   pull_request:
   push:
@@ -10,28 +13,82 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read # paths-filter 在 pull_request 上经 API 拉取改动文件清单
+
+# 同一 PR 连推多个 commit 时取消过时的 run；push main 的体检跑完整。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      deployment: ${{ github.event_name != 'pull_request' || steps.filter.outputs.deployment == 'true' || steps.filter.outputs.unknown == 'true' }}
+    steps:
+      # push main 恒为全量，filter 结果无意义，跳过。
+      - if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+      - if: github.event_name == 'pull_request'
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            # deployment 真活 = compose 迁移演练 + 后端镜像构建，输入面如下。
+            deployment:
+              - 'backend/**'
+              - 'deploy/**'
+              - 'tools/deploy/**'
+              - 'Makefile'
+            # 兜底：清单外的改动（含 workflow 自身、新增顶层目录）→ 全跑。
+            unknown:
+              - '**'
+              - '.github/**'
+              - '!backend/**'
+              - '!miniapp/**'
+              - '!admin/**'
+              - '!docs/**'
+              - '!specs/**'
+              - '!deploy/**'
+              - '!tools/**'
+              - '!Makefile'
+              - '!package.json'
+              - '!pnpm-lock.yaml'
+              - '!pnpm-workspace.yaml'
+              - '!*.md'
+
   deployment:
     runs-on: ubuntu-latest
+    needs: changes
+    env:
+      RUN_CHECK: ${{ needs.changes.outputs.deployment }}
     steps:
       - name: Check out source
+        if: env.RUN_CHECK == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Go
+        if: env.RUN_CHECK == 'true'
         uses: actions/setup-go@v5
         with:
           go-version: 1.27.x
 
       - name: Validate Compose and migration configuration
+        if: env.RUN_CHECK == 'true'
         run: make migration-config-check
 
       - name: Run migration service
+        if: env.RUN_CHECK == 'true'
         run: docker compose -f deploy/compose/docker-compose.yml run --rm migration-test
 
       - name: Build backend image
+        if: env.RUN_CHECK == 'true'
         run: make image-build
 
       - name: Clean up migration services
-        if: always()
+        if: env.RUN_CHECK == 'true' && always()
         run: docker compose -f deploy/compose/docker-compose.yml down --volumes --remove-orphans
+
+      - name: Fast pass (no deployment inputs changed)
+        if: env.RUN_CHECK != 'true'
+        run: echo "Deployment inputs (backend/deploy/Makefile) untouched in this PR; fast pass."
