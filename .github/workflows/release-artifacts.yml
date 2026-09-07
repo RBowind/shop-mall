@@ -31,8 +31,10 @@ jobs:
         uses: actions/checkout@v4
       - if: github.event_name == 'pull_request'
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
+          # quantifier 必须显式指定，教训见 pull-request-checks.yml 同处注释。
+          predicate-quantifier: some-with-excludes
           filters: |
             # deployment 真活 = compose 迁移演练 + 后端镜像构建，输入面如下。
             deployment:
@@ -40,9 +42,10 @@ jobs:
               - 'deploy/**'
               - 'tools/deploy/**'
               - 'Makefile'
-            # 兜底：纯 negated = 补集，deployment 清单外一切改动 → 全跑（含 workflow 自身）。
-            # first-match-wins 教训：不能把 '**' 放最前，见 pull-request-checks.yml 注释。
+            # 兜底：正向 '**' 纳入一切 + 负向排除各门已覆盖的路径 → 清单外改动（含 workflow 自身）全跑。
+            # 正负缺一不可：some-with-excludes 下纯负向恒假（假绿），默认 some 下含负向恒真（全量）。
             unknown:
+              - '**'
               - '!backend/**'
               - '!miniapp/**'
               - '!admin/**'
