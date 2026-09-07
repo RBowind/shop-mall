@@ -1,8 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import { parse } from "yaml";
+
+import { buildStaleErrorMessage } from "./drift-report.mjs";
 
 const root = resolve(import.meta.dirname, "../..");
 const contract = resolve(root, "docs/api/openapi.yaml");
@@ -176,6 +178,9 @@ async function generate(): Promise<void> {
   const contractSource = await readFile(contract, "utf8");
   validatePublicInt64(parse(contractSource));
 
+  const repoPath = (output: string): string => relative(root, output).replaceAll("\\", "/");
+  const staleEntries: { file: string; checkedIn: string; regenerated: string }[] = [];
+
   for (const output of outputs) {
     await withGeneratedFile(output, async (temporaryOutput) => {
       const generated = await readFile(temporaryOutput, "utf8");
@@ -184,10 +189,12 @@ async function generate(): Promise<void> {
         try {
           existing = await readFile(output, "utf8");
         } catch {
-          throw new Error(`missing generated output: ${output}`);
+          throw new Error(`missing generated output: ${repoPath(output)}; run pnpm --filter @shop-mall/openapi generate`);
         }
         if (existing !== generated) {
-          throw new Error(`generated output is stale: ${output}; run pnpm --filter @shop-mall/openapi generate`);
+          // 不在第一个漂移处 throw：收齐所有 stale 文件后一次性报告（含行级 diff），
+          // 否则第二个文件的同类漂移会被藏掉，学员/评审要跑两轮才知道全貌。
+          staleEntries.push({ file: repoPath(output), checkedIn: existing, regenerated: generated });
         }
         return;
       }
@@ -195,6 +202,10 @@ async function generate(): Promise<void> {
       await mkdir(dirname(output), { recursive: true });
       await writeFile(output, generated);
     });
+  }
+
+  if (staleEntries.length > 0) {
+    throw new Error(buildStaleErrorMessage(staleEntries));
   }
 }
 
