@@ -65,10 +65,10 @@ jobs:
               - 'backend/**'
               - 'tools/coverage/**'
               - 'Makefile'
-            # 兜底：不在已知作用域内的改动（含 workflow 自身、新增顶层目录）→ 四门全跑。
+            # 兜底：纯 negated 过滤器 = 补集，清单外一切改动 → 四门全跑（含 workflow 自身、新增顶层目录）。
+            # 教训：dorny 是 first-match-wins，'**' 放最前会让所有文件先命中它、后面的 ! 全成死代码 →
+            # unknown 恒真、短路失效。故此处只用负向，且不排除 .github/**（改了 workflow 就全跑自证）。
             unknown:
-              - '**'
-              - '.github/**'
               - '!backend/**'
               - '!miniapp/**'
               - '!admin/**'
@@ -81,6 +81,7 @@ jobs:
               - '!pnpm-lock.yaml'
               - '!pnpm-workspace.yaml'
               - '!*.md'
+              - '!.gitignore'
 
   contract:
     runs-on: ubuntu-latest

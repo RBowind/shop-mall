@@ -40,10 +40,9 @@ jobs:
               - 'deploy/**'
               - 'tools/deploy/**'
               - 'Makefile'
-            # 兜底：清单外的改动（含 workflow 自身、新增顶层目录）→ 全跑。
+            # 兜底：纯 negated = 补集，deployment 清单外一切改动 → 全跑（含 workflow 自身）。
+            # first-match-wins 教训：不能把 '**' 放最前，见 pull-request-checks.yml 注释。
             unknown:
-              - '**'
-              - '.github/**'
               - '!backend/**'
               - '!miniapp/**'
               - '!admin/**'
@@ -56,6 +55,7 @@ jobs:
               - '!pnpm-lock.yaml'
               - '!pnpm-workspace.yaml'
               - '!*.md'
+              - '!.gitignore'
 
   deployment:
     runs-on: ubuntu-latest
