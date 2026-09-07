@@ -39,8 +39,12 @@ jobs:
         uses: actions/checkout@v4
       - if: github.event_name == 'pull_request'
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
+          # some-with-excludes = "命中任一正向 且 不被任一负向排除"。默认的 some 会把每条 !xxx
+          # 反转成"匹配一切非 xxx"的正向匹配器 → 含任一负向的过滤器恒真、unknown 兜底永远 true
+          # → 五门全量、短路分支从不触发（#5/#6 两轮实测踩的就是这个坑）。
+          predicate-quantifier: some-with-excludes
           filters: |
             # 契约真源、生成器、签入的生成产物，及 pnpm 安装面（Makefile/workspace/lock）。
             contract:
@@ -65,10 +69,12 @@ jobs:
               - 'backend/**'
               - 'tools/coverage/**'
               - 'Makefile'
-            # 兜底：纯 negated 过滤器 = 补集，清单外一切改动 → 四门全跑（含 workflow 自身、新增顶层目录）。
-            # 教训：dorny 是 first-match-wins，'**' 放最前会让所有文件先命中它、后面的 ! 全成死代码 →
-            # unknown 恒真、短路失效。故此处只用负向，且不排除 .github/**（改了 workflow 就全跑自证）。
+            # 兜底：正向 '**' 纳入一切，再靠负向排除"已被上面某个门单独覆盖"的路径。
+            # 于是 unknown 真 = 改动落在所有门的清单之外（新顶层目录、workflow 自身等）→ 四门全跑。
+            # 依赖 quantifier=some-with-excludes 才对：默认的 some 会把每条 !xxx 反转成"匹配一切
+            # 非 xxx"→ unknown 恒真；而纯负向（去掉 '**'）在此模式下又恒假 → 假绿。正负都要在。
             unknown:
+              - '**'
               - '!backend/**'
               - '!miniapp/**'
               - '!admin/**'
