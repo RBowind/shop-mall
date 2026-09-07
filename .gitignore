@@ -38,3 +38,6 @@ miniapp/.verify/
 # go test coverage artifacts (diff coverage gate)
 cover.out
 coverage.xml
+
+# Python caches (tools/mutation scripts)
+__pycache__/

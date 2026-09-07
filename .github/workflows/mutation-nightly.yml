@@ -2,7 +2,10 @@ name: Mutation Nightly
 
 # 变异测试夜跑：每个变异点都要重连库重跑集成测试，是分钟级到小时级的活，
 # 不进 required checks、不挡合并，只出报告攒基线（见 docs/decisions/decision-log.md）。
-# 红一次 = 昨晚的测试抓不住某些故意改坏，报告看 Actions artifact。
+# gremlins 不设阈值时永远绿（退出码 0），"抓不住改动"由 update-baseline.py 判定：
+# efficacy 较昨晚跌超 1pt 或跌破 70% 即标红 + 自动开 Issue（label: mutation-nightly）。
+# 基线文档自动维护在 metrics 孤儿分支（main 有分支保护，bot 推不动）：
+# https://github.com/RBowind/shop-mall/tree/metrics
 on:
   schedule:
     # 每天 02:30 GMT+8
@@ -10,7 +13,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write   # 回写 metrics 分支基线文档
+  issues: write     # 回退时自动开 Issue
+
+# 夜跑/手动触发都跑完整，不互相取消（schedule 事件恒为 false）。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   gremlins:
@@ -29,8 +38,17 @@ jobs:
       - name: Unleash gremlins on backend
         working-directory: backend
         run: |
-          go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+          # 钉版本：@latest 会让夜跑基线随上游漂移，升级时手动改这里。
+          go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
           "$(go env GOPATH)/bin/gremlins" unleash 2>&1 | tee gremlins-report.log
+
+      # 解析日志 → 更新 metrics 分支基线 → 回退判定（红则建 Issue 并退出非零）。
+      # gremlins 本体失败时跳过：编译炸了属于另一类问题，看 run 红即可。
+      - name: Update baseline & detect regression
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tools/mutation/update-baseline.py backend/gremlins-report.log
 
       - name: Upload report
         if: always()
