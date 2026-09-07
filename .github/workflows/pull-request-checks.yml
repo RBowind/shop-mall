@@ -144,6 +144,16 @@ jobs:
         if: env.RUN_CHECK == 'true'
         run: make -C backend lint
 
+      # 供应链门：govulncheck（Go 官方）按调用图判定，只有真会执行到的漏洞函数才报。
+      # 钉版本（同 gremlins 教训）。上游新披露 CVE 会让 main 隔夜变红——这是设计意图，
+      # 漏洞出来就该挡合并，红的是门不是人。
+      - name: Dependency vulnerability scan
+        if: env.RUN_CHECK == 'true'
+        working-directory: backend
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
+          "$(go env GOPATH)/bin/govulncheck" ./...
+
       # -race：并发缺陷只靠普通 test 抓不到，门禁必须带竞争检测。
       - name: Test backend
         if: env.RUN_CHECK == 'true'
