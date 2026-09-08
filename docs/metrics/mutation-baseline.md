@@ -8,7 +8,7 @@
 
 | 日期 (GMT+8) | Efficacy | Coverage | Killed | Lived | Not covered | 用时 | vs 前夜 |
 |---|---|---|---|---|---|---|---|
-| 2026-09-08 02:23 | 77.53% | 84.13% | 1163 | 337 | 283 | 2 hours 30 minutes | 首晚基线 |
+| 2026-09-08 08:32 | 77.60% | 84.13% | 1164 | 336 | 283 | 2 hours 47 minutes | 首晚基线 |
 
 ## 最新一晚：存活变异体在哪（按目录，前 15）
 
@@ -23,7 +23,7 @@
 | internal/user | 19 | CONDITIONALS_BOUNDARY ×13, CONDITIONALS_NEGATION ×4, ARITHMETIC_BASE ×2 |
 | internal/storage | 14 | CONDITIONALS_BOUNDARY ×11, CONDITIONALS_NEGATION ×3 |
 | internal/application/order | 13 | CONDITIONALS_NEGATION ×8, CONDITIONALS_BOUNDARY ×5 |
-| internal/middleware | 10 | CONDITIONALS_BOUNDARY ×6, CONDITIONALS_NEGATION ×4 |
+| internal/middleware | 9 | CONDITIONALS_BOUNDARY ×5, CONDITIONALS_NEGATION ×4 |
 | internal/application/points | 7 | CONDITIONALS_NEGATION ×4, CONDITIONALS_BOUNDARY ×3 |
 | internal/application/auth | 6 | CONDITIONALS_NEGATION ×3, CONDITIONALS_BOUNDARY ×3 |
 | internal/application/refund | 6 | CONDITIONALS_NEGATION ×4, CONDITIONALS_BOUNDARY ×2 |
@@ -35,7 +35,7 @@
 | 算子 | Lived |
 |---|---|
 | CONDITIONALS_NEGATION | 188 |
-| CONDITIONALS_BOUNDARY | 112 |
+| CONDITIONALS_BOUNDARY | 111 |
 | ARITHMETIC_BASE | 33 |
 | INVERT_NEGATIVES | 3 |
 | INCREMENT_DECREMENT | 1 |
