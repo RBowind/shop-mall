@@ -9,6 +9,7 @@
 | 日期 (GMT+8) | Efficacy | Coverage | Killed | Lived | Not covered | 用时 | vs 前夜 |
 |---|---|---|---|---|---|---|---|
 | 2026-09-08 08:32 | 77.60% | 84.13% | 1164 | 336 | 283 | 2 hours 47 minutes | 首晚基线 |
+| 2026-09-09 07:47 | 77.60% | 84.13% | 1164 | 336 | 283 | 2 hours 25 minutes | −0.00pt |
 
 ## 最新一晚：存活变异体在哪（按目录，前 15）
 
@@ -39,5 +40,3 @@
 | ARITHMETIC_BASE | 33 |
 | INVERT_NEGATIVES | 3 |
 | INCREMENT_DECREMENT | 1 |
-
-_首晚基线：明晚起自动对比回退。_
