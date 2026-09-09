@@ -1747,6 +1747,10 @@ components:
           maxLength: 128
         description:
           type: string
+        subtitle:
+          type: string
+          maxLength: 64
+          description: Short marketing line shown under the product name.
         category:
           $ref: '#/components/schemas/CategoryKey'
         main_image:
