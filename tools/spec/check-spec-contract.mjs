@@ -152,6 +152,7 @@ const specFiles = existsSync(specsDir)
 // 测试侧回链：按 capability 归属，因为 B 编号在每个 capability 内各自从 1 起。
 const allTestFiles = walk(testsDir).filter((p) => p.endsWith(".go"));
 const anchorsByCap = new Map();
+const uncoveredByCap = [];
 
 for (const cap of specFiles) {
   const specPath = join(specsDir, cap, "spec.md");
@@ -351,6 +352,11 @@ for (const cap of specFiles) {
   }
   anchorsByCap.set(cap, anchored);
 
+  uncoveredByCap.push({
+    cap,
+    ids: contract.b.filter((b) => !b.checked && !anchored.has(+b.id.slice(1))).map((b) => b.id),
+  });
+
   for (const b of contract.b) {
     const n = +b.id.slice(1);
     if (b.checked && !anchored.has(n)) {
@@ -392,6 +398,18 @@ for (const p of allTestFiles) {
     }
     RE_ANCHOR.lastIndex = 0;
   });
+}
+
+// `--report`：列出未勾选且无回链的 B，也就是行为验证缺口。它们是允许存在的状态
+// （未实现、或已实现但没补测试），所以不 FAIL；这份清单是给回填排期用的。
+if (process.argv.includes("--report")) {
+  const rows = uncoveredByCap.filter((r) => r.ids.length > 0);
+  const gap = rows.reduce((n, r) => n + r.ids.length, 0);
+  const total = uncoveredByCap.reduce((n, r) => n + r.ids.length, 0);
+  console.log(`行为验证缺口：${gap} 条未勾选且无回链\n`);
+  for (const r of rows) console.log(`  ${r.cap.padEnd(15)} ${String(r.ids.length).padStart(3)}  ${r.ids.join(" ")}`);
+  console.log(`\n合计 ${total} 条。给每条写用例并在用例上方写 \`// contract: B<n>\`，跑通后勾选合同复选框。`);
+  console.log("");
 }
 
 const render = (list) =>
