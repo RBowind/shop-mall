@@ -46,7 +46,7 @@ diff-coverage:
 migration-config-check:
 	@set -eu; \
 	$(COMPOSE) -f "$(COMPOSE_FILE)" config --format json | node tools/deploy/validate-compose.mjs; \
-	for migration in backend/migrations/0001_init.up.sql backend/migrations/0002_seed.up.sql; do \
+	for migration in backend/migrations/*.up.sql; do \
 		test -s "$$migration"; \
 	done
 
