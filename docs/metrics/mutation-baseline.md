@@ -16,6 +16,7 @@
 | 2026-09-13 07:05 | 77.53% | 84.13% | 1163 | 337 | 283 | 2 hours 15 minutes | −0.00pt |
 | 2026-09-14 07:38 | 77.60% | 84.13% | 1164 | 336 | 283 | 2 hours 34 minutes | +0.07pt |
 | 2026-09-15 08:34 | 77.60% | 84.13% | 1164 | 336 | 283 | 2 hours 33 minutes | −0.00pt |
+| 2026-09-16 08:08 | 77.53% | 84.13% | 1163 | 337 | 283 | 2 hours 28 minutes | −0.07pt |
 
 ## 最新一晚：存活变异体在哪（按目录，前 15）
 
@@ -28,8 +29,8 @@
 | tests/e2e | 25 | CONDITIONALS_NEGATION ×19, ARITHMETIC_BASE ×4, CONDITIONALS_BOUNDARY ×1 |
 | internal/product | 23 | CONDITIONALS_NEGATION ×14, CONDITIONALS_BOUNDARY ×8, ARITHMETIC_BASE ×1 |
 | internal/user | 19 | CONDITIONALS_BOUNDARY ×13, CONDITIONALS_NEGATION ×4, ARITHMETIC_BASE ×2 |
+| internal/application/order | 14 | CONDITIONALS_NEGATION ×9, CONDITIONALS_BOUNDARY ×5 |
 | internal/storage | 14 | CONDITIONALS_BOUNDARY ×11, CONDITIONALS_NEGATION ×3 |
-| internal/application/order | 13 | CONDITIONALS_NEGATION ×8, CONDITIONALS_BOUNDARY ×5 |
 | internal/middleware | 9 | CONDITIONALS_BOUNDARY ×5, CONDITIONALS_NEGATION ×4 |
 | internal/application/points | 7 | CONDITIONALS_NEGATION ×4, CONDITIONALS_BOUNDARY ×3 |
 | internal/application/auth | 6 | CONDITIONALS_NEGATION ×3, CONDITIONALS_BOUNDARY ×3 |
@@ -41,7 +42,7 @@
 
 | 算子 | Lived |
 |---|---|
-| CONDITIONALS_NEGATION | 188 |
+| CONDITIONALS_NEGATION | 189 |
 | CONDITIONALS_BOUNDARY | 111 |
 | ARITHMETIC_BASE | 33 |
 | INVERT_NEGATIVES | 3 |
