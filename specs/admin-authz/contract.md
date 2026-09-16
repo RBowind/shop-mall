@@ -42,7 +42,7 @@ Status: DRAFT（待独立 Evaluator 与人 gate）
 - [ ] Q1: 后端全量测试 `go test ./...` 绿
 - [ ] Q2: 鉴权矩阵全覆盖安全用例（`backend/tests/`：每权限码至少一条 403 路径）
 - [ ] Q3: CSRF/Origin 中间件单测（缺头、错值、白名单内外）
-- [ ] Q4: 日志敏感字段扫描通过（B30 对应，N-002）
+- [ ] Q4: 日志敏感字段扫描通过（B31 对应，N-002）
 - [ ] Q5: 前端 admin：构建+类型检查+单测绿（N-008）
 
 ## Schema Changes

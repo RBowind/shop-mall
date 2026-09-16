@@ -30,8 +30,5 @@ Status: DRAFT（待独立 Evaluator 与人 gate）
 ### orders
 - `refund_requested_at` TIMESTAMPTZ NULL - 申请退款时服务端写入，供买家侧展示申请时间；存量行不回填。迁移只向前（goose 无 down）。
 
-## Follow-ups
-- FU-4e7c1a52: 买家退款原因服务端是否强制非空及长度上限，待产品口径。
-
 ## Pass Rule
 ALL B* 断言全过 + ALL Q* + lint/test 绿 + refund_requested_at 迁移通过 `make contract-check` 与迁移构建检查（N-008）。

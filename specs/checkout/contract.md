@@ -13,7 +13,7 @@ Status: DRAFT（待独立 Evaluator 与人 gate）
 - [ ] B7 [ADDED]: 收货地址管理 / 操作非本人地址
 - [ ] B8 [ADDED]: 订单快照 / 商品后续变更不影响
 - [ ] B9 [MODIFIED]: 服务端定价下单 / 下单成功
-- [ ] B10 [MODIFIED]: 服务端定价下单 / 余额不足不再是下单门槛
+- [ ] B10 [MODIFIED]: 服务端定价下单 / 余额不足仍可下单
 - [ ] B11 [MODIFIED]: 服务端定价下单 / 券资格服务端判定
 - [ ] B12 [MODIFIED]: 服务端定价下单 / 请求体不携带价格与身份
 - [ ] B13 [MODIFIED]: 服务端定价下单 / 库存不足

@@ -6,11 +6,6 @@
 
 - techspec: `docs/architecture/07-coupon-pay-lifecycle.md` §2、§4；`docs/tech-specs/flows.md` 全局事务与并发规则
 
-## 关联 capability
-
-- 下单产出待支付订单见 `specs/checkout/spec.md`
-- 订单终态后的发货收货见 `specs/fulfillment/spec.md`
-
 ## Requirements
 
 ### Requirement: 确认支付
@@ -20,7 +15,7 @@ The system SHALL 只允许买家本人把待支付（`pending_payment`）订单�
 #### Scenario: 支付成功
 
 - **WHEN** 买家 `POST /api/v1/orders/{orderId}/pay` 请求支付本人 `pending_payment` 订单，余额不小于实付积分
-- **THEN** 支付成功时：订单状态变 `paid` 并记支付时间；买家余额按 `pay_points`（实付=原价-券抵扣）扣减；写一条关联该订单的负值 `order_pay` 流水；该订单预占的锁定库存消耗掉（锁定数减、可售数不回增）；占用的券若存在则核销为 `used`
+- **THEN** 支付成功时：订单状态变 `paid` 并记支付时间；买家余额按 `pay_points`（实付=原价-券抵扣）扣减；写一条关联该订单的负值 `order_pay` 流水；该订单预占的 `hold_stock` 消耗掉（预占数减、可售数不回增）；占用的券若存在则核销为 `used`
 - **AND** 响应返回已支付订单
 
 #### Scenario: 余额不足
@@ -66,7 +61,7 @@ The system SHALL 由周期任务取消所有已超过支付截止时间且仍待
 #### Scenario: 超时订单被取消
 
 - **WHEN** 周期扫描时订单为 `pending_payment` 且已到达支付截止时间
-- **THEN** 订单状态变 `cancelled` 并记取消时间；订单内每个商品的可售库存按数量回补、锁定库存相应减少；占用的券未过期回到可用、已过期置过期
+- **THEN** 订单状态变 `cancelled` 并记取消时间；订单内每个商品的可售库存按数量回补、`hold_stock` 相应减少；占用的券未过期回到可用、已过期置过期
 - **AND** 买家余额与积分流水不变；购物车不因取消发生变化
 
 #### Scenario: 取消与支付并发只有一方生效
