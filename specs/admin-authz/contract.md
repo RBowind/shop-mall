@@ -4,39 +4,39 @@ Status: DRAFT（待独立 Evaluator 与人 gate）
 
 ## Behavioral Changes
 
-- [ ] B1 [ADDED]: 管理员登录 / 登录成功 — verified by BDD test
-- [ ] B2 [ADDED]: 管理员登录 / 登录失败 — verified by BDD test
-- [ ] B3 [ADDED]: 管理员登录 / 撞库限速 — verified by BDD test
-- [ ] B4 [ADDED]: 管理员登录 / 已停用账号登录 — verified by BDD test
-- [ ] B5 [ADDED]: 写请求 CSRF 与 Origin 校验 / 缺少 CSRF 头 — verified by BDD test
-- [ ] B6 [ADDED]: 写请求 CSRF 与 Origin 校验 / 非白名单来源 — verified by BDD test
-- [ ] B7 [ADDED]: 写请求 CSRF 与 Origin 校验 / 登录例外 — verified by BDD test
-- [ ] B8 [ADDED]: 会话即时失效 / 改密成功旧会话失效 — verified by BDD test
-- [ ] B9 [ADDED]: 会话即时失效 / 新密码强度不足 — verified by BDD test
-- [ ] B10 [ADDED]: 会话即时失效 / 登出 — verified by BDD test
-- [ ] B11 [ADDED]: 会话即时失效 / 停用账号 — verified by BDD test
-- [ ] B12 [ADDED]: 会话即时失效 / 会话到期 — verified by BDD test
-- [ ] B13 [ADDED]: 权限实时判定 / 撤权立即生效 — verified by BDD test
-- [ ] B14 [ADDED]: 权限实时判定 / 授权立即生效 — verified by BDD test
-- [ ] B15 [ADDED]: 权限实时判定 / 越权访问 — verified by BDD test
-- [ ] B16 [ADDED]: 权限实时判定 / 买家令牌打管理域 — verified by BDD test
-- [ ] B17 [ADDED]: 权限实时判定 / 管理令牌打买家域 — verified by BDD test
-- [ ] B18 [ADDED]: 权限实时判定 / 两域密钥配置相同 — verified by BDD test
-- [ ] B19 [ADDED]: 角色与管理员账号管理 / 创建与改授权 — verified by BDD test
-- [ ] B20 [ADDED]: 角色与管理员账号管理 / 创建重名角色 — verified by BDD test
-- [ ] B21 [ADDED]: 角色与管理员账号管理 / 删除被引用角色 — verified by BDD test
-- [ ] B22 [ADDED]: 角色与管理员账号管理 / 禁用最后一个超管 — verified by BDD test
-- [ ] B23 [ADDED]: 角色与管理员账号管理 / 只读查询角色与账号 — verified by BDD test
-- [ ] B24 [ADDED]: 角色与管理员账号管理 / 停用账号 — verified by BDD test
-- [ ] B25 [ADDED]: 角色与管理员账号管理 / 未知权限码 — verified by BDD test
-- [ ] B26 [ADDED]: 会员查询 / 查询买家 — verified by BDD test
-- [ ] B27 [ADDED]: 会员查询 / 运营查询会员 — verified by BDD test
-- [ ] B28 [ADDED]: 审计日志留存与查询 / 成功操作留痕 — verified by BDD test
-- [ ] B29 [ADDED]: 审计日志留存与查询 / 失败尝试同样留痕 — verified by BDD test
-- [ ] B30 [ADDED]: 审计日志留存与查询 / 查询审计 — verified by BDD test
-- [ ] B31 [ADDED]: 审计日志留存与查询 / 敏感信息不进日志 — verified by BDD test
-- [ ] B32 [MODIFIED]: 登出与改密挂 `admin:self` 权限码 / 缺 admin:self 的账号 — verified by BDD test
-- [ ] B33 [MODIFIED]: 登出与改密挂 `admin:self` 权限码 / 默认角色不受影响 — verified by BDD test
+- [ ] B1 [ADDED]: 管理员登录 / 登录成功
+- [ ] B2 [ADDED]: 管理员登录 / 登录失败
+- [ ] B3 [ADDED]: 管理员登录 / 撞库限速
+- [ ] B4 [ADDED]: 管理员登录 / 已停用账号登录
+- [ ] B5 [ADDED]: 写请求 CSRF 与 Origin 校验 / 缺少 CSRF 头
+- [ ] B6 [ADDED]: 写请求 CSRF 与 Origin 校验 / 非白名单来源
+- [ ] B7 [ADDED]: 写请求 CSRF 与 Origin 校验 / 登录例外
+- [ ] B8 [ADDED]: 会话即时失效 / 改密成功旧会话失效
+- [ ] B9 [ADDED]: 会话即时失效 / 新密码强度不足
+- [ ] B10 [ADDED]: 会话即时失效 / 登出
+- [ ] B11 [ADDED]: 会话即时失效 / 停用账号
+- [ ] B12 [ADDED]: 会话即时失效 / 会话到期
+- [ ] B13 [ADDED]: 权限实时判定 / 撤权立即生效
+- [ ] B14 [ADDED]: 权限实时判定 / 授权立即生效
+- [ ] B15 [ADDED]: 权限实时判定 / 越权访问
+- [ ] B16 [ADDED]: 权限实时判定 / 买家令牌打管理域
+- [ ] B17 [ADDED]: 权限实时判定 / 管理令牌打买家域
+- [ ] B18 [ADDED]: 权限实时判定 / 两域密钥配置相同
+- [ ] B19 [ADDED]: 角色与管理员账号管理 / 创建与改授权
+- [ ] B20 [ADDED]: 角色与管理员账号管理 / 创建重名角色
+- [ ] B21 [ADDED]: 角色与管理员账号管理 / 删除被引用角色
+- [ ] B22 [ADDED]: 角色与管理员账号管理 / 禁用最后一个超管
+- [ ] B23 [ADDED]: 角色与管理员账号管理 / 只读查询角色与账号
+- [ ] B24 [ADDED]: 角色与管理员账号管理 / 停用账号
+- [ ] B25 [ADDED]: 角色与管理员账号管理 / 未知权限码
+- [ ] B26 [ADDED]: 会员查询 / 查询买家
+- [ ] B27 [ADDED]: 会员查询 / 运营查询会员
+- [ ] B28 [ADDED]: 审计日志留存与查询 / 成功操作留痕
+- [ ] B29 [ADDED]: 审计日志留存与查询 / 失败尝试同样留痕
+- [ ] B30 [ADDED]: 审计日志留存与查询 / 查询审计
+- [ ] B31 [ADDED]: 审计日志留存与查询 / 敏感信息不进日志
+- [ ] B32 [MODIFIED]: 登出与改密挂 `admin:self` 权限码 / 缺 admin:self 的账号
+- [ ] B33 [MODIFIED]: 登出与改密挂 `admin:self` 权限码 / 默认角色不受影响
 
 ## Quality
 - [ ] Q1: 后端全量测试 `go test ./...` 绿

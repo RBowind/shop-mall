@@ -4,18 +4,18 @@ Status: DRAFT（待独立 Evaluator 与人 gate）
 
 ## Behavioral Changes
 
-- [ ] B1 [MODIFIED]: 管理员发货 / 发货成功 — verified by BDD test
-- [ ] B2 [MODIFIED]: 管理员发货 / 状态不符 — verified by BDD test
-- [ ] B3 [MODIFIED]: 管理员发货 / 订单不存在 — verified by BDD test
-- [ ] B4 [MODIFIED]: 管理员发货 / 无权限管理员 — verified by BDD test
-- [ ] B5 [MODIFIED]: 买家确认收货 / 确认成功 — verified by BDD test
-- [ ] B6 [MODIFIED]: 买家确认收货 / 其他状态确认 — verified by BDD test
-- [ ] B7 [MODIFIED]: 买家确认收货 / 重复确认 — verified by BDD test
-- [ ] B8 [MODIFIED]: 买家确认收货 / 确认他人订单 — verified by BDD test
-- [ ] B9 [MODIFIED]: 管理端订单查询 / 列表查询 — verified by BDD test
-- [ ] B10 [MODIFIED]: 管理端订单查询 / 详情查询 — verified by BDD test
-- [ ] B11 [MODIFIED]: 管理端订单查询 / 无权限查询 — verified by BDD test
-- [ ] B12 [MODIFIED]: 管理端订单查询 / 查询不存在的订单 — verified by BDD test
+- [ ] B1 [MODIFIED]: 管理员发货 / 发货成功
+- [ ] B2 [MODIFIED]: 管理员发货 / 状态不符
+- [ ] B3 [MODIFIED]: 管理员发货 / 订单不存在
+- [ ] B4 [MODIFIED]: 管理员发货 / 无权限管理员
+- [ ] B5 [MODIFIED]: 买家确认收货 / 确认成功
+- [ ] B6 [MODIFIED]: 买家确认收货 / 其他状态确认
+- [ ] B7 [MODIFIED]: 买家确认收货 / 重复确认
+- [ ] B8 [MODIFIED]: 买家确认收货 / 确认他人订单
+- [ ] B9 [MODIFIED]: 管理端订单查询 / 列表查询
+- [ ] B10 [MODIFIED]: 管理端订单查询 / 详情查询
+- [ ] B11 [MODIFIED]: 管理端订单查询 / 无权限查询
+- [ ] B12 [MODIFIED]: 管理端订单查询 / 查询不存在的订单
 
 ## Quality
 - [ ] Q1: 后端全量测试 `go test ./...` 绿

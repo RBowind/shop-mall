@@ -4,29 +4,29 @@ Status: DRAFT（待独立 Evaluator 与人 gate）
 
 ## Behavioral Changes
 
-- [ ] B1 [ADDED]: 创建券模板 / 创建成功 — verified by BDD test
-- [ ] B2 [ADDED]: 创建券模板 / 规则非法 — verified by BDD test
-- [ ] B3 [ADDED]: 创建券模板 / 无权限创建 — verified by BDD test
-- [ ] B4 [ADDED]: 创建券模板 / 规则创建后不可修改 — verified by BDD test
-- [ ] B5 [ADDED]: 切换发放状态 / 停发 — verified by BDD test
-- [ ] B6 [ADDED]: 切换发放状态 / 恢复发放 — verified by BDD test
-- [ ] B7 [ADDED]: 切换发放状态 / 切换留痕 — verified by BDD test
-- [ ] B8 [ADDED]: 管理员查看模板 / 模板列表 — verified by BDD test
-- [ ] B9 [ADDED]: 管理员查看模板 / 无权限查看 — verified by BDD test
-- [ ] B10 [ADDED]: 领券中心可见性 / 列表内容 — verified by BDD test
-- [ ] B11 [ADDED]: 领券中心可见性 / 不可领模板不展示 — verified by BDD test
-- [ ] B12 [ADDED]: 领取优惠券 / 领取成功 — verified by BDD test
-- [ ] B13 [ADDED]: 领取优惠券 / 达到每人限领 — verified by BDD test
-- [ ] B14 [ADDED]: 领取优惠券 / 模板售罄与并发不超发 — verified by BDD test
-- [ ] B15 [ADDED]: 领取优惠券 / 模板不可领 — verified by BDD test
-- [ ] B16 [ADDED]: 领取优惠券 / 幂等重放 — verified by BDD test
-- [ ] B17 [ADDED]: 领取优惠券 / 并发双击领取 — verified by BDD test
-- [ ] B18 [ADDED]: 券生命周期状态机 / 下单占用与释放后可复用 — verified by BDD test
-- [ ] B19 [ADDED]: 券生命周期状态机 / 一张券至多被一笔在途订单占用 — verified by BDD test
-- [ ] B20 [ADDED]: 券生命周期状态机 / 过期扫描只动未占用的券 — verified by BDD test
-- [ ] B21 [ADDED]: 券生命周期状态机 / 已过期券不再被任何路径复用 — verified by BDD test
-- [ ] B22 [ADDED]: 买家查询我的券 / 按状态查券 — verified by BDD test
-- [ ] B23 [ADDED]: 买家查询我的券 / 只返回本人的券 — verified by BDD test
+- [ ] B1 [ADDED]: 创建券模板 / 创建成功
+- [ ] B2 [ADDED]: 创建券模板 / 规则非法
+- [ ] B3 [ADDED]: 创建券模板 / 无权限创建
+- [ ] B4 [ADDED]: 创建券模板 / 规则创建后不可修改
+- [ ] B5 [ADDED]: 切换发放状态 / 停发
+- [ ] B6 [ADDED]: 切换发放状态 / 恢复发放
+- [ ] B7 [ADDED]: 切换发放状态 / 切换留痕
+- [ ] B8 [ADDED]: 管理员查看模板 / 模板列表
+- [ ] B9 [ADDED]: 管理员查看模板 / 无权限查看
+- [ ] B10 [ADDED]: 领券中心可见性 / 列表内容
+- [ ] B11 [ADDED]: 领券中心可见性 / 不可领模板不展示
+- [ ] B12 [ADDED]: 领取优惠券 / 领取成功
+- [ ] B13 [ADDED]: 领取优惠券 / 达到每人限领
+- [ ] B14 [ADDED]: 领取优惠券 / 模板售罄与并发不超发
+- [ ] B15 [ADDED]: 领取优惠券 / 模板不可领
+- [ ] B16 [ADDED]: 领取优惠券 / 幂等重放
+- [ ] B17 [ADDED]: 领取优惠券 / 并发双击领取
+- [ ] B18 [ADDED]: 券生命周期状态机 / 下单占用与释放后可复用
+- [ ] B19 [ADDED]: 券生命周期状态机 / 一张券至多被一笔在途订单占用
+- [ ] B20 [ADDED]: 券生命周期状态机 / 过期扫描只动未占用的券
+- [ ] B21 [ADDED]: 券生命周期状态机 / 已过期券不再被任何路径复用
+- [ ] B22 [ADDED]: 买家查询我的券 / 按状态查券
+- [ ] B23 [ADDED]: 买家查询我的券 / 只返回本人的券
 
 ## Quality
 - [ ] Q1: 后端全量测试与优惠券行为测试绿
