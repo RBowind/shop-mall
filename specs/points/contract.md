@@ -1,23 +1,22 @@
 # Sprint Contract: points
 Source: specs/points/spec.md
-Status: APPROVED（人 gate 已过，2026-09-01；2026-09-02 由 devloop 启动时经用户确认统一改标记）
+Status: DRAFT（待独立 Evaluator 与人 gate）
 
-## Behavioral（from spec scenarios）
-- [ ] B1: 任一积分变动——余额与流水同事务、balance_after 一致 — verified by BDD test
-- [ ] B2: 明细页可对账——流水累计等于余额 — verified by BDD test
-- [ ] B3: 事务回滚不留单边——无只改余额或只记流水的中间态 — verified by BDD test
-- [ ] B4: 扣成负数——被拒余额流水不变，调减被拒尽力补记失败审计 — verified by BDD test
-- [ ] B5: 无改写通道——不存在修改/删除流水的接口 — verified by BDD test
-- [ ] B6: 流水字段约束——delta≠0、balance_after≥0、四类型联动组合 — verified by BDD test
-- [ ] B7: 查询明细——本人倒序分页含关联订单 — verified by BDD test
-- [ ] B8: 未登录——401 — verified by BDD test
-- [ ] B9: 调整成功——余额变化+admin_adjust 流水+成功审计同事务 — verified by BDD test
-- [ ] B10: 幂等重放——同键同内容不重复到账 — verified by BDD test
-- [ ] B11: 同键不同内容——409 且尽力补记失败审计 — verified by BDD test
-- [ ] B12: 幂等域按管理员隔离——两管理员同键各自生效 — verified by BDD test
-- [ ] B13: 备注缺失——参数错误余额不变 — verified by BDD test
-- [ ] B14: 无权限调整——403+失败审计 — verified by BDD test
-- [ ] B15: 直接设定余额——无此通道 — verified by BDD test
+## Behavioral Changes
+
+- [ ] B1 [ADDED]: 流水只追加 / 无改写通道 — verified by BDD test
+- [ ] B2 [ADDED]: 流水只追加 / 流水字段约束 — verified by BDD test
+- [ ] B3 [ADDED]: 买家查询本人流水 / 查询明细 — verified by BDD test
+- [ ] B4 [ADDED]: 买家查询本人流水 / 未登录 — verified by BDD test
+- [ ] B5 [ADDED]: 管理员幂等调整积分 / 调整成功 — verified by BDD test
+- [ ] B6 [ADDED]: 管理员幂等调整积分 / 幂等重放 — verified by BDD test
+- [ ] B7 [ADDED]: 管理员幂等调整积分 / 同键不同内容 — verified by BDD test
+- [ ] B8 [ADDED]: 管理员幂等调整积分 / 幂等域按管理员隔离 — verified by BDD test
+- [ ] B9 [ADDED]: 管理员幂等调整积分 / 备注缺失 — verified by BDD test
+- [ ] B10 [ADDED]: 管理员幂等调整积分 / 无权限调整 — verified by BDD test
+- [ ] B11 [ADDED]: 不提供直改余额通道 / 直接设定余额 — verified by BDD test
+- [ ] B12 [MODIFIED]: 余额与流水保持一致 / 任一积分变动 — verified by BDD test
+- [ ] B13 [MODIFIED]: 余额恒不为负 / 扣成负数 — verified by BDD test
 
 ## Quality
 - [ ] Q1: 后端全量测试 `go test ./...` 绿

@@ -38,9 +38,9 @@ make contract-check  # 校验 OpenAPI 契约
 
 | 内容 | 位置 |
 |---|---|
-| 全景图文（三端截图导览） | `docs/图文-shop-mall-全景介绍.md` |
+| 全景图文（三端截图导览） | `docs/architecture/00-overview.md`、`docs/images/` |
 | PRD | `docs/prd.md` |
-| 架构与 specs | `docs/architecture/`、`docs/api/openapi.yaml` |
+| 架构与 specs | `docs/architecture/`、`specs/`、`docs/api/openapi.yaml` |
 | 决策记录 | `docs/decisions/decision-log.md` |
-| 复盘 | `docs/postmortems/` |
+| 复盘 | `docs/accidents/` |
 | 发布与恢复 | `docs/ops/release-recovery.md` |

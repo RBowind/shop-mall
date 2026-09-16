@@ -8,6 +8,7 @@
  */
 
 import { Input, Text, View } from "@tarojs/components";
+import { useReachBottom } from "@tarojs/taro";
 import { useState } from "react";
 
 import { ProductCard } from "../../components/product-card/product-card";
@@ -21,26 +22,25 @@ import { cartStore } from "../../stores/cart";
 
 import "./index.css";
 
+const PAGE_SIZE = 10;
+
 export function SearchPage() {
   const [keyword, setKeyword] = useState("");
   const [submitted, setSubmitted] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
 
-  const runSearch = (value: string) => {
-    const term = value.trim();
-    if (!term) {
-      setSubmitted("");
-      setProducts([]);
-      return;
-    }
-    setSubmitted(term);
+  const loadSearch = (term: string, nextPage: number, reset: boolean) => {
     setLoading(true);
     setErrorText("");
-    listProducts({ page: 1, page_size: 50, keyword: term })
+    listProducts({ page: nextPage, page_size: PAGE_SIZE, keyword: term })
       .then((result) => {
-        setProducts(result.list);
+        setProducts((current) => (reset ? result.list : current.concat(result.list)));
+        setPage(result.page);
+        setTotal(result.total);
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -49,6 +49,26 @@ export function SearchPage() {
         setErrorText(withTraceId(presentation));
       });
   };
+
+  const runSearch = (value: string) => {
+    const term = value.trim();
+    setSubmitted(term);
+    setPage(1);
+    setTotal(0);
+    setProducts([]);
+    if (!term) {
+      setLoading(false);
+      setErrorText("");
+      return;
+    }
+    loadSearch(term, 1, true);
+  };
+
+  useReachBottom(() => {
+    if (submitted && !loading && products.length < total) {
+      loadSearch(submitted, page + 1, false);
+    }
+  });
 
   const handleConfirm = (event: { detail: { value: string } }) => {
     runSearch(event.detail.value);
@@ -117,10 +137,10 @@ export function SearchPage() {
           <t-empty description={`未找到与「${submitted}」相关的商品`} />
         </View>
       ) : null}
-      {!loading && submitted && products.length > 0 ? (
+      {submitted && products.length > 0 ? (
         <View className="search-result">
           <Text className="search-result__summary">
-            找到 {products.length} 件「{submitted}」相关商品
+            找到 {total} 件「{submitted}」相关商品
           </Text>
           <View className="product-grid">
             {products.map((product) => (
@@ -132,6 +152,11 @@ export function SearchPage() {
               />
             ))}
           </View>
+          {!loading && products.length < total ? (
+            <View className="load-more">
+              <Text className="load-more__text">上拉加载更多</Text>
+            </View>
+          ) : null}
         </View>
       ) : null}
       {!submitted && !loading ? (

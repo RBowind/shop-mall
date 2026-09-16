@@ -10,7 +10,7 @@
 
 ## 1. 背景与目标
 
-现状下单即支付：提交订单的同一事务里直接扣积分、生成已支付订单，商品是单一定价，没有任何营销能力。本功能把下单拆成"下单预占 → 确认支付"两个动作，新增满减券，并让超时未支付的订单由后台任务自动取消、释放占用的库存和券。
+变更前下单即支付：提交订单的同一事务里直接扣积分、生成已支付订单，商品是单一定价，没有任何营销能力。本功能把下单拆成"下单预占 → 确认支付"两个动作，新增满减券，并让超时未支付的订单由后台任务自动取消、释放占用的库存和券。
 
 用户结果：买家能领券、用券，下单后有一段时间决定要不要付；超时不付订单自动作废，库存和券回到可卖、可领的状态。管理员能创建和停发券模板，能看已领取与已核销数量。
 
@@ -109,7 +109,7 @@
 | `cancelled_at`    | TIMESTAMPTZ | 服务生成 | 可空                                                                                                              |
 | `paid_at`         | TIMESTAMPTZ | 服务生成 | 从"默认 now"改为待支付→已支付迁移时写入；列改为可空                                                                                   |
 
-不变的部分：`total_points` 仍是明细快照价合计（原价口径）；`(user_id, client_token)` 幂等、地址与商品快照、既有五个状态间的一致性 CHECK 全部保留。
+不变的部分：`total_points` 仍是明细快照价合计（原价口径）；`(user_id, client_token)` 幂等、地址与商品快照、变更前五个状态间的一致性 CHECK 约束继续保留并扩展到七状态。
 
 决策性约束（新增与扩展）：
 
@@ -222,15 +222,15 @@ sequenceDiagram
     else 新请求
         U->>DB: FOR UPDATE 锁模板行
         alt 模板不存在 / 非 active / 早于 valid_from / 已过 valid_until
-            U-->>M: 6xxx 券不可领取
+            U-->>M: 2002 券不可领取
         else
             U->>DB: 统计该用户此模板持券数
             alt 达到 per_user_limit
-                U-->>M: 6xxx 已达限领（回滚）
+                U-->>M: 2002 已达限领（回滚）
             else
                 U->>DB: 条件扣减 received_count（< total_count）
                 alt 影响行数 0（售罄）
-                    U-->>M: 6xxx 已领完（回滚）
+                    U-->>M: 2002 已领完（回滚）
                 else
                     U->>DB: INSERT user_coupons（available，request_id）
                     U->>DB: 提交
@@ -261,7 +261,7 @@ sequenceDiagram
         opt 请求带 coupon_id
             U->>DB: 锁券行，校验归属、available、有效期内、total_points >= 门槛
             alt 任一不满足
-                U->>DB: 回滚，6xxx 券不可用
+                U->>DB: 回滚，2002 券不可用
             end
         end
         U->>DB: INSERT orders（pending_payment，pay_expire_at，total/discount/pay_points）
@@ -301,7 +301,7 @@ sequenceDiagram
             U->>DB: 锁用户行，条件扣积分（points_balance >= pay_points，RETURNING 新余额）
             alt 余额不足
                 U->>DB: 整体回滚（订单回到 pending_payment）
-                U-->>M: 5xxx 余额不足，可补分重试
+                U-->>M: 2002 余额不足，可补分重试
             else
                 U->>DB: 写 order_pay 流水（event_key = order_pay:{order_id}）
                 U->>DB: 按 product_id 升序释放 locked_stock（库存售出）
@@ -348,12 +348,12 @@ sequenceDiagram
 
 统一响应包裹、分页、鉴权、越权 404 与 CSRF 约定沿用主档（`../tech-specs/interfaces.md`），此处只列新增端点与语义变更；字段级契约冻结进 `../api/openapi.yaml` 后重新生成两端类型。
 
-错误码新增券段 **6000-6999**（语义类：券不可领取、已达限领、已领完、券不可用/不满足门槛）；支付复用积分段 5xxx（余额不足）与订单段 4xxx（状态迁移非法）。
+券相关业务失败复用业务码 `2002`；余额不足同样返回 `2002`；支付状态冲突返回 `2001`。
 
 ### 买家域（`/api/v1`，买家 Bearer JWT）
 
 - `GET /coupons/center` — 领券中心：处于有效期内（`valid_from` 已过、`valid_until` 未到）且 `active` 的模板列表，附当前用户已领数与可领标记；分页。
-- `POST /coupons/{templateId}/receive` — 领取一张券，Header `Idempotency-Key`（UUID，落库为 `user_coupons.request_id`）；同键同模板重放原结果、同键异模板 409；其余错误归 6xxx（图见 §4 主流程 1）。
+- `POST /coupons/{templateId}/receive` — 领取一张券，Header `Idempotency-Key`（UUID，落库为 `user_coupons.request_id`）；同键同模板重放原结果、同键异模板 409；其余业务错误归 `2002`（图见 §4 主流程 1）。
 - `GET /me/coupons` — 我的券，`status` 查询参数四选一；响应含券名、门槛、抵扣、`valid_until`、状态、占用订单号（`locked`/`used` 时）。
 - `POST /orders` — 请求体新增可选 `coupon_id`；成功响应为 `pending_payment` 订单，含 `total_points`、`discount_points`、`pay_points`、`pay_expire_at`。`coupon_id` 进入 `request_hash` 输入（§3）。
 - `POST /orders/{orderId}/pay` — 确认支付（幂等语义见 §4 主流程 3）；不需要 `Idempotency-Key`，幂等域是订单本身。

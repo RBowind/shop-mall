@@ -6,7 +6,7 @@
 
 - techspec: `docs/tech-specs/shop-mall-tech-spec.md` §2、§5；`docs/tech-specs/flows.md` 第 1 节；`docs/tech-specs/interfaces.md` 买家域端点
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: 微信登录签发买家令牌
 
@@ -24,7 +24,7 @@ The system SHALL 用一次性登录凭证 code 换取微信用户标识 openid�
 
 - **WHEN** code 请求登录接口
 - **AND** code2Session 失败（code 已被消费、过期或微信服务异常）
-- **THEN** 响应返回 2xxx 段认证错误码
+- **THEN** 响应返回 2002 认证业务错误码
 - **AND** 不创建用户、不签发令牌
 - **AND** 客户端重新 `wx.login()` 取新 code 再试，不重复消费旧 code
 
@@ -38,6 +38,7 @@ The system SHALL 用一次性登录凭证 code 换取微信用户标识 openid�
 - **WHEN** 小程序任一请求收到 401
 - **THEN** 清除本地会话，下一次写操作时弹窗引导重新登录
 
+
 ### Requirement: 首次登录赠送积分
 
 The system SHALL 对新买家在首次登录时一次性赠送初始积分，赠送金额来自部署配置（默认 100），每个账号终身至多一次。
@@ -45,7 +46,7 @@ The system SHALL 对新买家在首次登录时一次性赠送初始积分，赠
 #### Scenario: 新用户首登
 
 - **WHEN** 登录请求的 openid 在系统中不存在，且部署配置的赠送积分大于 0
-- **THEN** 账号创建、余额增加、一条 `type=signup_bonus` 的积分流水在同一数据库事务内完成
+- **THEN** 账号创建、余额增加、一条 `type=signup_bonus` 的积分流水在以原子结果完成
 - **AND** 流水记录赠送后的余额
 
 #### Scenario: 老用户重复登录
@@ -58,10 +59,11 @@ The system SHALL 对新买家在首次登录时一次性赠送初始积分，赠
 - **WHEN** 新用户首登且部署配置的赠送积分等于 0
 - **THEN** 账号创建成功，余额保持 0，不写流水
 
-#### Scenario: 登录事务提交失败
+#### Scenario: 登录持久化失败
 
-- **WHEN** 新用户登录过程中数据库事务提交失败
+- **WHEN** 新用户登录过程中账号或积分流水无法持久化
 - **THEN** 不签发令牌，账号与流水都不留存
+
 
 ### Requirement: 登录接口按 IP 限流
 
@@ -71,6 +73,7 @@ The system SHALL 对登录接口按来源 IP（Internet Protocol 地址，即客
 
 - **WHEN** 同一来源 IP 一分钟内第 21 次请求 `POST /api/v1/auth/wx-login`
 - **THEN** 请求被拒绝，系统不发起微信侧调用
+
 
 ### Requirement: 买家资料维护
 
@@ -96,6 +99,7 @@ The system SHALL 允许已登录买家修改昵称与头像，修改后全局生
 
 - **WHEN** 提交的昵称超出长度或格式限制
 - **THEN** 请求被拒，返回参数错误，原昵称不变
+
 
 ## Coverage Gaps
 

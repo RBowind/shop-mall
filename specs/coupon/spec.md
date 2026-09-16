@@ -6,7 +6,7 @@
 
 - techspec: `docs/architecture/07-coupon-pay-lifecycle.md` §2、§3、§5；主档 `docs/tech-specs/interfaces.md`（错误码段与鉴权约定）
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: 创建券模板
 
@@ -21,7 +21,7 @@ The system SHALL 让持 `coupon:write` 的管理员创建满减券模板：门�
 #### Scenario: 规则非法
 
 - **WHEN** 提交不满足任一规则约束：门槛或抵扣不是正整数、抵扣不小于门槛、总量或每人限领不是正整数、`valid_until` 不晚于 `valid_from`
-- **THEN** 返回 1xxx 段参数错误，不创建模板，已创建模板不受影响
+- **THEN** 返回 1001 参数错误，不创建模板，已创建模板不受影响
 
 #### Scenario: 无权限创建
 
@@ -32,6 +32,7 @@ The system SHALL 让持 `coupon:write` 的管理员创建满减券模板：门�
 
 - **WHEN** 对已有模板提交规则字段（门槛、抵扣、总量、限领、有效期）的修改请求
 - **THEN** 请求中仅发放状态变更生效，规则字段一概不被采信
+
 
 ### Requirement: 切换发放状态
 
@@ -53,6 +54,7 @@ The system SHALL 允许管理员在发放中（`active`）与停发（`halted`�
 - **WHEN** 任一发放状态切换成功
 - **THEN** 一条成功审计记录操作人与切换前后状态
 
+
 ### Requirement: 管理员查看模板
 
 The system SHALL 向持 `coupon:read` 的管理员分页返回全部券模板，含发放进度与核销数。
@@ -66,6 +68,7 @@ The system SHALL 向持 `coupon:read` 的管理员分页返回全部券模板，
 
 - **WHEN** 管理员角色不含 `coupon:read`
 - **THEN** 响应 403
+
 
 ### Requirement: 领券中心可见性
 
@@ -81,29 +84,30 @@ The system SHALL 向已登录买家展示正在发放且当前处于有效期内
 - **WHEN** 模板为 `halted`、未到 `valid_from` 或已过 `valid_until`
 - **THEN** 该模板不出现在领券中心列表
 
+
 ### Requirement: 领取优惠券
 
 The system SHALL 让买家以 Idempotency-Key 领取一张券：受模板总量与每人限领双重约束，同键重复提交不重复发券，并发下不超发。
 
 #### Scenario: 领取成功
 
-- **WHEN** 买家 `POST /api/v1/coupons/{templateId}/receive` 携带 Idempotency-Key（幂等键，HTTP Header，UUID 文本，库上落为 `user_coupons.request_id`），模板可领且本人未达限领、模板未售罄
+- **WHEN** 买家 `POST /api/v1/coupons/{templateId}/receive` 携带 Idempotency-Key（幂等键，超文本传输协议（HTTP）请求头，通用唯一标识符（UUID）文本，库上落为 `user_coupons.request_id`），模板可领且本人未达限领、模板未售罄
 - **THEN** 买家获得一张可用（`available`）券，模板已领取数加一
 
 #### Scenario: 达到每人限领
 
 - **WHEN** 买家在该模板下已持有的券数达到 `per_user_limit`
-- **THEN** 返回 6xxx 段已达限领错误码，券数与已领取数不变
+- **THEN** 返回 2002 业务错误码（已达限领），券数与已领取数不变
 
 #### Scenario: 模板售罄与并发不超发
 
 - **WHEN** 剩余可领数少于同时发起的领取请求数
-- **THEN** 恰好发出剩余数量的券，其后请求全部返回 6xxx 已领完；已领取数从不超过模板总量
+- **THEN** 恰好发出剩余数量的券，其后请求全部返回 2002 已领完；已领取数从不超过模板总量
 
 #### Scenario: 模板不可领
 
 - **WHEN** 模板不存在、为 `halted`、未到 `valid_from` 或已过 `valid_until`
-- **THEN** 返回 6xxx 段券不可领取错误码，无任何副作用
+- **THEN** 返回 2002 业务错误码（券不可领取），无任何副作用
 
 #### Scenario: 幂等重放
 
@@ -115,6 +119,7 @@ The system SHALL 让买家以 Idempotency-Key 领取一张券：受模板总量�
 
 - **WHEN** 同键两个首次请求并发到达
 - **THEN** 只发一张券；另一请求以重放结束；换一个键的请求视为新领取，正常消耗限领数与总量
+
 
 ### Requirement: 券生命周期状态机
 
@@ -129,7 +134,7 @@ The system SHALL 使券只沿以下路径流转：领取为可用（`available`�
 #### Scenario: 一张券至多被一笔在途订单占用
 
 - **WHEN** 买家把同一张券先后提交给两笔下单请求（第一笔已锁定该券）
-- **THEN** 第二笔请求返回 6xxx 段券不可用错误码
+- **THEN** 第二笔请求返回 2002 业务错误码（券不可用）
 
 #### Scenario: 过期扫描只动未占用的券
 
@@ -141,6 +146,7 @@ The system SHALL 使券只沿以下路径流转：领取为可用（`available`�
 
 - **WHEN** 后续轮次的过期扫描、退款审批或其他任何操作触达一张 `expired` 的券
 - **THEN** 该券保持 `expired`，不存在使其回到可用的路径
+
 
 ### Requirement: 买家查询我的券
 
@@ -156,8 +162,9 @@ The system SHALL 向买家分页返回本人券，支持按状态过滤，响应
 - **WHEN** 买家查询
 - **THEN** 结果不含任何其他买家的券；券按用户归属由令牌身份界定，无按他人券 ID 操作的接口路径
 
+
 ## Coverage Gaps
 
-- 模板列表"已核销数"的实时聚合口径（大总量下是否改物化计数）未定义，当前按聚合查询实现，数据量上来后再定。
+- 模板列表"已核销数"的实时展示口径未定义，大数据量下是否需要调整统计方式待定。
 - 券模板数量、每人限领的字段级上限（如总量最大值）未定义，以入库后的 openapi 契约为准。
 - 领券中心与我的券页面交互归 `docs/architecture/01-miniapp.md`，本 spec 不复述。

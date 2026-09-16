@@ -22,9 +22,10 @@ import (
 var publicIDPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 const (
-	defaultPage     = 1
-	defaultPageSize = 20
-	maxPageSize     = 100
+	defaultPage       = 1
+	defaultPublicSize = 10
+	defaultAdminSize  = 20
+	maxPageSize       = 100
 )
 
 // AdminViewer resolves the actor's current role for audit rows. The admin
@@ -65,7 +66,7 @@ func NewHandler(deps HandlerDeps) (*Handler, error) {
 // ListProducts handles GET /api/v1/products. Public on-sale listing ordered
 // by id descending, with optional category and keyword (name) filters.
 func (h *Handler) ListProducts(c *gin.Context) {
-	page, pageSize, err := parsePaging(c)
+	page, pageSize, err := parsePaging(c, defaultPublicSize)
 	if err != nil {
 		platformhttp.Error(c, http.StatusBadRequest, platformhttp.CodeBadRequest, err.Error())
 		return
@@ -122,7 +123,7 @@ func (h *Handler) GetProduct(c *gin.Context) {
 
 // AdminListProducts handles GET /api/admin/v1/products. Requires product:read.
 func (h *Handler) AdminListProducts(c *gin.Context) {
-	page, pageSize, err := parsePaging(c)
+	page, pageSize, err := parsePaging(c, defaultAdminSize)
 	if err != nil {
 		platformhttp.Error(c, http.StatusBadRequest, platformhttp.CodeBadRequest, err.Error())
 		return
@@ -260,9 +261,9 @@ func mapProductError(err error) (int, int) {
 	}
 }
 
-func parsePaging(c *gin.Context) (int, int, error) {
+func parsePaging(c *gin.Context, defaultSize int) (int, int, error) {
 	page := defaultPage
-	pageSize := defaultPageSize
+	pageSize := defaultSize
 	if raw := c.Query("page"); raw != "" {
 		parsed, err := strconv.Atoi(raw)
 		if err != nil || parsed < 1 {

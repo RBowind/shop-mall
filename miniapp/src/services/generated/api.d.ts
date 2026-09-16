@@ -710,6 +710,46 @@ export interface paths {
         patch: operations["updateAdminUser"];
         trace?: never;
     };
+    "/api/admin/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List buyer accounts
+         * @description Numeric keyword values match a buyer id; other keyword values match the buyer nickname case-insensitively. The response contains only the buyer id, nickname, points balance, and registration time.
+         */
+        get: operations["listUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List audit logs
+         * @description Returns redacted append-only administrator audit records in reverse chronological order.
+         */
+        get: operations["listAuditLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -875,6 +915,37 @@ export interface components {
             message: string;
             trace_id: string;
         };
+        AdminMember: {
+            /** @example 1 */
+            id: string;
+            nickname: string;
+            /** @example 0 */
+            points_balance: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        AuditLog: {
+            /** @example 1 */
+            id: string;
+            /** @example 1 */
+            actor_admin_id?: string | null;
+            actor_role: string;
+            action: string;
+            target_type: string;
+            /** @example 1 */
+            target_id?: string | null;
+            /** @enum {string} */
+            result: "success" | "failure";
+            before_data: {
+                [key: string]: unknown;
+            };
+            after_data: {
+                [key: string]: unknown;
+            };
+            trace_id: string;
+            /** Format: date-time */
+            created_at: string;
+        };
         AdminUserResponse: {
             /** @constant */
             code: 0;
@@ -887,6 +958,24 @@ export interface components {
             code: 0;
             data: components["schemas"]["PageMeta"] & {
                 list?: components["schemas"]["AdminUser"][];
+            };
+            message: string;
+            trace_id: string;
+        };
+        UserListResponse: {
+            /** @constant */
+            code: 0;
+            data: components["schemas"]["PageMeta"] & {
+                list?: components["schemas"]["AdminMember"][];
+            };
+            message: string;
+            trace_id: string;
+        };
+        AuditLogListResponse: {
+            /** @constant */
+            code: 0;
+            data: components["schemas"]["PageMeta"] & {
+                list?: components["schemas"]["AuditLog"][];
             };
             message: string;
             trace_id: string;
@@ -1197,6 +1286,26 @@ export interface components {
                 "application/json": components["schemas"]["AdminUserListResponse"];
             };
         };
+        /** @description Buyer account list response. */
+        UserListSuccess: {
+            headers: {
+                "X-Trace-Id": components["headers"]["TraceId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["UserListResponse"];
+            };
+        };
+        /** @description Audit log list response. */
+        AuditLogListSuccess: {
+            headers: {
+                "X-Trace-Id": components["headers"]["TraceId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AuditLogListResponse"];
+            };
+        };
         /** @description Authentication failed or token expired. */
         Unauthorized: {
             headers: {
@@ -1321,6 +1430,8 @@ export interface components {
     parameters: {
         Page: number;
         PageSize: number;
+        /** @description Public product, category, and search pages use 10 items by default. */
+        PublicProductPageSize: number;
         IdempotencyKey: string;
         ProductId: string;
         CartItemId: string;
@@ -1447,7 +1558,8 @@ export interface operations {
         parameters: {
             query?: {
                 page?: components["parameters"]["Page"];
-                page_size?: components["parameters"]["PageSize"];
+                /** @description Public product, category, and search pages use 10 items by default. */
+                page_size?: components["parameters"]["PublicProductPageSize"];
                 /** @description Restrict the listing to one category catalog key; empty or absent means every category. */
                 category?: components["parameters"]["ProductCategory"];
                 /** @description Case-insensitive substring match against the product name. */
@@ -2135,6 +2247,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["BusinessError"];
             500: components["responses"]["InternalServerError"];
         };
     };
@@ -2436,6 +2549,45 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["BusinessError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    listUsers: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                page_size?: components["parameters"]["PageSize"];
+                keyword?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["UserListSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    listAuditLogs: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                page_size?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["AuditLogListSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             500: components["responses"]["InternalServerError"];
         };
     };

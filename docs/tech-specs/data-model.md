@@ -2,6 +2,8 @@
 
 本文件是全系统数据模型的详情，入口见 [`shop-mall-tech-spec.md`](./shop-mall-tech-spec.md)。字段、类型与约束来自 [`../architecture/05-database.md`](../architecture/05-database.md)（建表级设计，权威 DDL 为其 goose migration），此处按表整理字段 shape 与决策性约束，不复制完整 DDL。
 
+> 当前目标状态：优惠券与订单支付生命周期涉及的新增表、订单七状态、支付金额字段及预占库存字段，以 [`../architecture/07-coupon-pay-lifecycle.md`](../architecture/07-coupon-pay-lifecycle.md) 为准；本文中相应旧版模型只作为迁移前基线。
+
 ## 设计原则
 
 - 积分、价格、库存、数量一律整数；积分与余额用 BIGINT。
@@ -22,7 +24,7 @@
 | `permissions` | `id`、`code`、`name` | `code` 唯一；insert |
 | `role_permissions` | `role_id`、`permission_id` | 复合主键；级联删除；insert |
 
-权限码枚举（12 项，全量）：`product:read`、`product:write`、`image:write`、`order:read`、`order:ship`、`refund:read`、`refund:approve`、`points:adjust`、`role:manage`、`admin:self`、`user:read`、`audit:read`。其中 `user:read`（买家列表）与 `audit:read`（审计查询）仅授予超管——角色管理权不自动带出成员与审计可见性。
+变更前权限码枚举（12 项）：`product:read`、`product:write`、`image:write`、`order:read`、`order:ship`、`refund:read`、`refund:approve`、`points:adjust`、`role:manage`、`admin:self`、`user:read`、`audit:read`。其中 `user:read`（买家列表）与 `audit:read`（审计查询）仅授予超管——角色管理权不自动带出成员与审计可见性。
 
 ### admin_users
 
@@ -108,7 +110,7 @@ API 响应中的 `main_image` 是图集首图派生的公共 URL（兼容旧客�
 | `user_id` | BIGINT | JWT 派生 | 外键 users |
 | `client_token` | VARCHAR(64) | 客户端输入（幂等键） | 非空且去空格非空 |
 | `request_hash` | CHAR(64) | 服务派生 | 对所选购物车项 ID、每项商品与数量、地址 ID 与地址 version 规范化后 SHA-256；价格与库存不进入 hash |
-| `status` | VARCHAR(20) | 服务迁移 | 枚举 `paid` \| `shipped` \| `completed` \| `refund_requested` \| `refunded` |
+| `status` | VARCHAR(20) | 服务迁移 | 变更前枚举 `paid` \| `shipped` \| `completed` \| `refund_requested` \| `refunded`；当前七状态见 `07-coupon-pay-lifecycle.md` |
 | `total_points` | BIGINT | 服务派生 | `> 0` |
 | `receiver` | VARCHAR(32) | 地址快照 | 非空 |
 | `phone` | VARCHAR(20) | 地址快照 | 非空，敏感 |

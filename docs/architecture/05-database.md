@@ -1,5 +1,7 @@
 # 数据库设计（PostgreSQL）
 
+> 当前目标状态：订单七状态、优惠券表、预占库存和支付金额字段以 `07-coupon-pay-lifecycle.md` 为准；本文旧版 DDL 只作为迁移前基线。
+
 总览级 ER 和关键时序见 `00-overview.md`，接口字段见 `../api/openapi.yaml`。本文是建表级设计和迁移评审依据。落地形式为 goose migration；已执行的 migration 文件禁止修改。
 
 ## 1. 设计原则
@@ -335,7 +337,7 @@ GROUP BY u.id, u.points_balance
 HAVING u.points_balance <> COALESCE(SUM(l.delta), 0);
 ```
 
-对账任务发现差异时只告警并冻结相关积分调整，不自动修改余额或删除流水。
+对账任务发现差异时只告警并冻结 `admin_adjust` 积分调整，不自动修改余额或删除流水。
 
 ## 4. 迁移管理
 

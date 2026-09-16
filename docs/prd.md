@@ -133,7 +133,7 @@ shop-mall 是一个积分商城教学项目，覆盖买家小程序、管理后�
 **US-401-b 预占库存与券**
 - **Description**：作为买家，我想下单时库存与券被预占，避免超卖与券被他人抢用。
 - **Acceptance Criteria**：
-  - [ ] 同事务内：`products.hold_stock += 数量`，`coupons.status = hold`（若引入此中间态）或加 hold 记录
+  - [ ] 同事务内：`products.hold_stock += 数量`，`user_coupons.status = locked` 并绑定订单
   - [ ] 预占动作有锁顺序保护（见 `docs/CONTEXT.md` lock 与架构 `02-backend.md`）
   - [ ] 任一商品可售数不足返回 422 并指出 product_id
   - [ ] 不写积分流水（流水留给支付）
@@ -158,7 +158,7 @@ shop-mall 是一个积分商城教学项目，覆盖买家小程序、管理后�
 **US-403-a 余额不足**
 - **Description**：作为买家，支付时若余额小于实付积分，我想看到明确错误而不是扣成负数。
 - **Acceptance Criteria**：
-  - [ ] 返回 5xxx 段错误码（如 `INSUFFICIENT_BALANCE`）
+  - [ ] 返回 2002错误码（如 `INSUFFICIENT_BALANCE`）
   - [ ] 订单保持 `pending_payment`
   - [ ] 库存 hold 与券 hold 不变
   - [ ] 管理员补分后同一订单可再次支付成功
@@ -174,7 +174,7 @@ shop-mall 是一个积分商城教学项目，覆盖买家小程序、管理后�
 **US-403-c 支付他人订单 403**
 - **Description**：作为买家，我不应能支付别人的订单。
 - **Acceptance Criteria**：
-  - [ ] orderId 不属于当前 buyer 时返回 403
+  - [ ] orderId 不属于当前 buyer 时返回 404，不暴露订单是否存在
   - [ ] 不返回订单详情以防 ID 探测
 
 **US-403-d 非 pending_payment 支付 409**
@@ -186,9 +186,9 @@ shop-mall 是一个积分商城教学项目，覆盖买家小程序、管理后�
 **US-408 后台超时取消**
 - **Description**：作为系统行为，`pending_payment` 订单超过支付时限应自动取消并释放 hold。
 - **Acceptance Criteria**：
-  - [ ] 后台 ticker 周期扫描（参见 `appendix.constants#ORDER_PAY_TIMEOUT`）
+  - [ ] 后台 ticker 周期扫描（参见 `appendix.constants#ORDER_PAY_TIMEOUT_MINUTES`）
   - [ ] 超时订单状态置为 `cancelled` 并记 `cancelled_at`
-  - [ ] 同事务内：`products.hold_stock -= 数量`，券从 `hold` 恢复为 `unused`
+  - [ ] 同事务内：`products.hold_stock -= 数量`，券未过期时从 `locked` 恢复为 `available`，已过期则置为 `expired`
   - [ ] `cancelled` 订单不可发起退款（前端隐藏入口，后端 409）
   - [ ] 后台任务退出可停止（ticker + ctx）
   - [ ] 行为契约见 `specs/order-payment/spec.md`
@@ -235,7 +235,7 @@ shop-mall 是一个积分商城教学项目，覆盖买家小程序、管理后�
 
 #### 3.1.6 优惠券
 
-> **教学语境 / 决策背景**：券是相对新的能力（v0.3 引入），演示「模板与实例分离」「hold/核销/作废三态生命周期」。
+> **教学语境 / 决策背景**：券是相对新的能力（v0.3 引入），演示「模板与实例分离」「hold/核销/释放/过期生命周期」。
 
 **US-501 优惠券中心**
 - **Description**：作为买家，我想浏览可领取的券模板并领取。
@@ -247,7 +247,7 @@ shop-mall 是一个积分商城教学项目，覆盖买家小程序、管理后�
 **US-502 券使用与查看**
 - **Description**：作为买家，结算页我想选券；「我的券」页我想看已领券状态。
 - **Acceptance Criteria**：
-  - [ ] 结算页可选一张在有效期内的 `unused` 券
+  - [ ] 结算页可选一张在有效期内的 `available` 券
   - [ ] 「我的券」页按状态分组：未使用 / 已使用 / 已过期 / 已作废
   - [ ] 取消订单 / 退款成功后券状态实时反映
 
@@ -258,7 +258,7 @@ shop-mall 是一个积分商城教学项目，覆盖买家小程序、管理后�
 **US-601 积分明细页**
 - **Description**：作为买家，我想看当前余额与全部流水。
 - **Acceptance Criteria**：
-  - [ ] 类型图标区分 `signup_bonus` / `order_pay` / `refund` / `admin_adjust` / `coupon`
+  - [ ] 类型图标区分 `signup_bonus` / `order_pay` / `order_refund` / `admin_adjust`
   - [ ] 收入支出颜色区分
   - [ ] 流水累计恒等于当前余额（不一致时前端展示异常标记）
 
@@ -313,13 +313,13 @@ shop-mall 是一个积分商城教学项目，覆盖买家小程序、管理后�
 
 #### 3.2.5 退款审批
 
-> **教学语境 / 决策背景**：退款审批演示「事务内多副作用」（退积分 + 回库存 + 券作废 + 状态变更）与「驳回不产生副作用」两个反面。
+> **教学语境 / 决策背景**：退款审批演示「事务内多副作用」（退积分 + 回库存 + 券按有效期处置 + 状态变更）与「驳回不产生副作用」两个反面。
 
-**US-705-a 通过：退积分 + 回库存 + 券作废**
+**US-705-a 通过：退积分 + 回库存 + 券按有效期处置**
 - **Description**：作为超管，我想批准退款请求并一次性回退所有副作用。
 - **Acceptance Criteria**：
-  - [ ] 同一事务内：买家余额 += `pay_points`；`products.hold_stock -= 数量`；券置 `voided`；订单状态置 `refunded`
-  - [ ] 写一条 `refund` 类型流水
+  - [ ] 同一事务内：买家余额 += `pay_points`；`products.hold_stock -= 数量`；券按有效期置 `available` 或 `expired`；订单状态置 `refunded`
+  - [ ] 写一条 `order_refund` 类型流水
   - [ ] 写审计日志
   - [ ] 任一步失败整事务回滚
 
@@ -358,7 +358,7 @@ shop-mall 是一个积分商城教学项目，覆盖买家小程序、管理后�
 - **Acceptance Criteria**：
   - [ ] 必填：名称 / 门槛积分 / 抵扣积分 / 总量 / 每人限领 / `valid_from` / `valid_until`
   - [ ] 规则校验：门槛与抵扣均为正整数；抵扣 < 门槛；总量与限领均为正整数；`valid_until` 严格晚于 `valid_from`
-  - [ ] 校验失败返回 1xxx 段错误码且不创建模板
+  - [ ] 校验失败返回 1001错误码且不创建模板
   - [ ] 创建后初始状态 `active`，已领取数 0
   - [ ] 写成功审计
 
@@ -427,9 +427,9 @@ shop-mall 是一个积分商城教学项目，覆盖买家小程序、管理后�
 | FR-12 | 下单接口走 `Idempotency-Key`，同键同请求重放、同键不同请求 409 | US-401-d |
 | FR-13 | 余额不足返回 `INSUFFICIENT_BALANCE`，hold 不变 | US-403-a |
 | FR-14 | 并发支付通过订单行 lock 去重 | US-403-b |
-| FR-15 | 支付他人订单返回 403 | US-403-c |
+| FR-15 | 支付他人订单返回 404 且不暴露资源存在性 | US-403-c |
 | FR-16 | 非 `pending_payment` 支付返回 409 | US-403-d |
-| FR-17 | 后台 ticker 周期扫描 `pending_payment` 订单，超 `ORDER_PAY_TIMEOUT` 置 `cancelled` 并释放 hold | US-408 |
+| FR-17 | 后台 ticker 周期扫描 `pending_payment` 订单，超 `ORDER_PAY_TIMEOUT_MINUTES` 置 `cancelled` 并释放 hold | US-408 |
 | FR-18 | 订单列表 8 个状态 tab 与 `CONTEXT.md §1.2` 一致 | US-404 |
 | FR-19 | 订单详情展示快照不被后续变更覆盖 | US-405 |
 | FR-20 | 仅 `shipped` 订单可确认收货 | US-406 |
@@ -448,7 +448,7 @@ shop-mall 是一个积分商城教学项目，覆盖买家小程序、管理后�
 | FR-33 | 商品新建必填字段；上下架即时生效 | US-702 |
 | FR-34 | 单商品最多 `PRODUCT_IMAGE_MAX_COUNT` 张图；JPEG/PNG/WebP；超 `PRODUCT_IMAGE_MAX_SIZE` 自动压缩 | US-703 |
 | FR-35 | 仅 `paid` 订单可发货；发货只记人与时间 | US-704 |
-| FR-36 | 退款通过：同事务退积分 + 回库存 + 券作废 + 状态置 `refunded` | US-705-a |
+| FR-36 | 退款通过：同事务退积分 + 回库存 + 券按有效期置 `available` 或 `expired` + 状态置 `refunded` | US-705-a |
 | FR-37 | 退款驳回：原因必填，订单回 `paid`，无副作用 | US-705-b |
 | FR-38 | 退款审批权限校验：运营角色 403 + 失败审计 | US-705-c |
 | FR-39 | 积分调整带 `Idempotency-Key`；扣减不下溢负 | US-706 |
@@ -491,7 +491,7 @@ shop-mall 是一个积分商城教学项目，覆盖买家小程序、管理后�
 
 | 事项 | 原决议 | 翻案日期 | 翻案原因 | 当前边界 |
 |---|---|---|---|---|
-| 优惠券 / 满减等营销 | v0.2（2026-09-01）PRD §7 明确不做 | 2026-09-06（v0.3） | 教学场景需要演示「模板与实例分离」「hold / 核销 / 作废生命周期」 | 券按单张抵扣；不做叠加营销 |
+| 优惠券 / 满减等营销 | v0.2（2026-09-01）PRD §7 明确不做 | 2026-09-06（v0.3） | 教学场景需要演示「模板与实例分离」「hold / 核销 / 释放 / 过期生命周期」 | 券按单张抵扣；不做叠加营销 |
 | 支付（一次性扣减） | v0.2 PRD §3 状态机：下单即 `paid` | 2026-09-06（v0.3） | 真实支付场景天然有「下单未付 / 超时取消」中间态，统一建模便于演示后台任务 | 支付动作独立为 `POST /api/v1/orders/{id}/pay`；超时由后台任务置 `cancelled` |
 
 ## 6. Design Considerations
@@ -558,7 +558,7 @@ PR 触发 CI 四道检查：
 - **SM-3** Lighthouse a11y 100（管理后台 6 个核心页面）
 - **SM-4** 备份演练 `deploy/backup/drill.sh` RPO ≤ 1h / RTO ≤ 4h
 - **SM-5** Prom alerts 7 条无长期 firing
-- **SM-6** 权限矩阵 14 码均能在 `specs/admin-authz/spec.md` 找到契约
+- **SM-6** 权限矩阵 14 码均能在 `specs/admin-authz/spec.md` 与 `specs/coupon/spec.md` 找到契约
 
 ## 9. Open Questions
 
@@ -584,7 +584,7 @@ PR 触发 CI 四道检查：
 | `PRODUCT_IMAGE_MAX_SIZE` | 2 MB | 单图大小上限（超则自动压缩） | US-703 |
 | `ADMIN_PASSWORD_MIN_LEN` | 12 | 管理员密码最小长度 | US-701 |
 | `ADMIN_COOKIE_TTL` | 30 分钟 | 管理端 Cookie 有效期 | US-701 |
-| `ORDER_PAY_TIMEOUT` | 待定（参见 `specs/order-payment/spec.md`） | `pending_payment` 订单支付时限 | US-408 |
+| `ORDER_PAY_TIMEOUT_MINUTES` | 15 分钟 | `pending_payment` 订单支付时限 | US-408 |
 | `ORDER_PAGE_SIZE` | 10 | 订单列表每页条数 | US-404 / US-202 |
 | `POINTS_LEDGER_VISIBLE_COUNT` | 待定 | 积分明细页默认展示条数 | US-601 / US-706 |
 

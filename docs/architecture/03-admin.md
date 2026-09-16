@@ -1,5 +1,7 @@
 # 管理后台架构（React + Ant Design Pro）
 
+> 当前目标状态：优惠券模板管理与支付生命周期以 `07-coupon-pay-lifecycle.md` 为准；本文补充管理端入口与权限边界。
+
 端间契约、接口路径、鉴权方式见 `00-overview.md` 和 `../api/openapi.yaml`。本文只写管理后台内部行为。
 
 ## 1. 职责边界
@@ -42,14 +44,18 @@
 | order:ship | ✓ | ✓ |
 | refund:read | ✓ | ✓ |
 | refund:approve | ✓ | — |
+| coupon:read | ✓ | ✓ |
+| coupon:write | ✓ | ✓ |
 | points:adjust | ✓ | — |
 | role:manage | ✓ | — |
+| user:read | ✓ | — |
+| audit:read | ✓ | — |
 | admin:self | ✓ | ✓ |
 
 - 未配置权限的管理员接口默认拒绝。
 - 登录接口是唯一公开的管理员接口；登出和改密需要 `admin:self`。登录前没有 Cookie，因此登录是 CSRF 校验例外，依靠 HTTPS、SameSite、Origin 校验和登录限流保护。
 - 角色权限不写进 JWT，每次请求按账号当前角色读取；权限修改下一次请求立即生效。
-- 运营可以查看退款申请，但不能通过或驳回退款。
+- 运营可以查看退款申请，但不能通过或驳回退款；运营可以查看和停发券模板，但不能修改模板规则字段。
 - 管理员只能禁用账号，不直接删除账号，避免破坏订单和流水的操作人留痕。
 
 角色管理契约为：`GET/POST /api/admin/v1/roles`、`PATCH /api/admin/v1/roles/{roleId}`、`GET /api/admin/v1/admin-users` 和 `PATCH /api/admin/v1/admin-users/{adminUserId}`。这些写操作由 `application/access` usecase 在一个事务中完成并写审计。角色和账号变更需要 `role:manage`，不能删除仍被使用的角色，不能禁用最后一个超管，也不能通过接口删除管理员账号。
@@ -57,13 +63,19 @@
 ## 5. 商品和图片
 
 - 商品编辑只接受服务端生成的图片 object key，不接受完整外部 URL。
-- 图片上传接口为 `POST /api/admin/v1/images`，multipart 单文件，最大 2MB，仅 JPEG、PNG、WebP。
+- 图片上传接口为 `POST /api/admin/v1/images`，multipart 单文件，接口最大 2MB，仅 JPEG、PNG、WebP；管理后台选择超限图片时先自动压缩，再调用该接口。
 - 服务端校验魔数、实际解码格式、像素上限和文件大小，必要时重新编码并清理元数据。
 - 文件名由服务端生成 UUID，原始文件名不进入路径。
 - `products.main_image` 保存 object key；API 响应根据受信任的 `PUBLIC_BASE_URL` 生成完整 URL。
 - 图片卷设置磁盘监控，替换图片不立即删除旧文件，由清理任务延迟清理未引用文件。
 
-## 6. 订单处理
+## 6. 商品与优惠券管理
+
+- `coupon:read` 可查看券模板列表及领取、核销数量。
+- `coupon:write` 可创建和停发券模板；模板规则创建后冻结。
+- 券模板创建与发放状态切换写入审计日志。
+
+## 7. 订单处理
 
 - 订单列表和详情需要 `order:read`。
 - 发货需要 `order:ship`，管理员 ID 从 JWT 获取，不能由前端传入。
@@ -72,7 +84,7 @@
 - 已发货、已完成、退款申请和已退款订单不能再次发货。
 - 重复发货请求返回当前状态或明确的 409，不重复修改操作人和时间。
 
-## 7. 退款审批
+## 8. 退款审批
 
 - `refund:read` 只能读取待审列表和申请详情。
 - `refund:approve` 同时覆盖通过和驳回；运营没有该权限。
@@ -81,12 +93,12 @@
 - 两个管理员并发审批时，只有成功执行 `refund_requested` 条件迁移的请求可以继续。
 - 金额由后端根据订单快照计算，后台只做通过或驳回，不能编辑退款金额。
 
-## 8. 审计与隐私
+## 9. 审计与隐私
 
 审计事件至少覆盖：登录成功/失败、改密、账号禁用、商品变更、图片上传、发货、退款审批、积分调整和权限变更。
 
 审计字段包含操作者、操作发生时的角色快照、动作、目标、结果、时间和 trace_id。日志和页面默认脱敏手机号、地址、JWT、密码、微信 code 与 session_key。
 
-## 9. 与小程序端的关系
+## 10. 与小程序端的关系
 
 两端共享 OpenAPI 契约和类型生成流程，但应用独立部署、独立鉴权、独立构建产物，不共享运行时代码。

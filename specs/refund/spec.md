@@ -7,7 +7,7 @@
 - techspec: `docs/tech-specs/shop-mall-tech-spec.md` §2、§3、§4；`docs/tech-specs/flows.md` 第 3 节；`docs/tech-specs/interfaces.md` 买家域与管理员域端点
 - techspec: `docs/architecture/07-coupon-pay-lifecycle.md` §4 主流程 5（退款金额改按实付、新增退券副作用，本节修订的依据）
 
-## MODIFIED Requirements
+## Requirements
 
 ### Requirement: 申请退款仅限未发货订单
 
@@ -33,9 +33,10 @@ The system SHALL 仅允许买家对本人 paid 订单发起退款申请；已发
 - **WHEN** orderId 不属于当前买家
 - **THEN** 响应 404，订单不变
 
+
 ### Requirement: 审批通过退还积分并回补库存
 
-The system SHALL 在审批通过时于同一数据库事务内完成退实付积分、回补可售库存、处置订单占用的券与状态迁移；退款金额由服务端按订单快照计算（实付=原价-券抵扣），审批接口不接收金额。
+The system SHALL 在审批通过时于以原子结果完成退实付积分、回补可售库存、处置订单占用的券与状态迁移；退款金额由服务端按订单快照计算（实付=原价-券抵扣），审批接口不接收金额。
 
 #### Scenario: 审批通过
 
@@ -57,7 +58,7 @@ The system SHALL 在审批通过时于同一数据库事务内完成退实付积
 - **WHEN** 管理员角色不含 `refund:approve`（如运营）
 - **THEN** 响应 403，订单不变，且一条失败审计记录该尝试
 
-## ADDED Requirements
+
 
 ### Requirement: 驳回仅回退状态
 
@@ -72,7 +73,7 @@ The system SHALL 驳回时必填原因，订单回退到 paid，不产生任何�
 #### Scenario: 缺少拒绝原因
 
 - **WHEN** reject 请求不带拒绝原因
-- **THEN** 返回 1xxx 段参数错误，订单保持 refund_requested
+- **THEN** 返回 1001 参数错误，订单保持 refund_requested
 
 #### Scenario: 重复驳回
 
@@ -83,6 +84,7 @@ The system SHALL 驳回时必填原因，订单回退到 paid，不产生任何�
 
 - **WHEN** 订单被驳回到 paid 后，买家再次请求退款
 - **THEN** 正常进入 refund_requested
+
 
 ### Requirement: 退款列表查看
 
@@ -97,6 +99,7 @@ The system SHALL 向持 `refund:read` 的管理员提供退款申请中与已退
 
 - **WHEN** 管理员角色不含 `refund:read`
 - **THEN** 响应 403
+
 
 ## Coverage Gaps
 

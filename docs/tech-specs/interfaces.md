@@ -2,6 +2,8 @@
 
 本文件是全系统接口的详情，入口见 [`shop-mall-tech-spec.md`](./shop-mall-tech-spec.md) 第 5 节。字段级定义（请求/响应结构、schema、security scheme）的唯一契约源是 [`../api/openapi.yaml`](../api/openapi.yaml)，本文件不复制其内容，只列端点清单与决策性约束。
 
+> 当前目标状态：优惠券、确认支付与待支付订单相关端点，以 [`../architecture/07-coupon-pay-lifecycle.md`](../architecture/07-coupon-pay-lifecycle.md) 的 feature 级接口定义为准；本文旧版端点清单只作为迁移前基线。
+
 ## 统一响应
 
 所有业务 API 使用同一响应包裹（运维接口例外）：
@@ -14,7 +16,7 @@
 - `trace_id`（链路追踪标识）同时经响应体与 `X-Trace-Id` 头返回；由入口中间件生成，客户端传入值仅在通过长度与字符校验时复用。
 - 内部异常不把 SQL、堆栈、微信密钥与敏感个人信息返回客户端。
 
-通用约定：分页 `page` 从 1 起、`page_size` 默认 20 上限 100，响应含 `list/total/page/page_size`；时间为 ISO 8601 UTC；积分、价格、库存、数量一律整数。
+通用约定：分页 `page` 从 1 起、`page_size` 默认 20 上限 100，响应含 `list/total/page/page_size`；公开商品、分类与搜索列表的默认 `page_size` 为 10；时间为 ISO 8601 UTC；积分、价格、库存、数量一律整数。
 
 ## 鉴权矩阵
 
@@ -46,13 +48,19 @@
 
 ## 错误码段
 
-| 段 | 范围 | 覆盖 |
-|---|---|---|
-| 通用 | 1000-1999 | 参数、认证、权限、资源不存在 |
-| 认证 | 2000-2999 | code2Session（微信登录凭证换 openid）失败、登录态过期 |
-| 商品 | 3000-3999 | 商品下架、库存不足 |
-| 订单 | 4000-4999 | 幂等冲突、状态迁移非法 |
-| 积分 | 5000-5999 | 余额不足 |
+| 业务码 | HTTP 状态 | 覆盖 |
+|---:|---:|---|
+| 1001 | 400 | 参数错误 |
+| 1002 | 401 | 认证失败、登录态无效 |
+| 1003 | 403 | 权限不足 |
+| 1004 | 404 | 资源不存在或越权资源 |
+| 2001 | 409 | 幂等冲突、状态冲突 |
+| 2002 | 422 | 业务规则失败，包括库存、余额、券与商品校验 |
+| 3001 | 429 | 登录或其他接口限流 |
+| 3002 | 413 | 请求体或文件过大 |
+| 4001 | 415 | 不支持的媒体格式 |
+| 4002 | 507 | 存储空间不足 |
+| 5001 | 500 | 未分类内部错误 |
 
 具体码值到端点的映射以 openapi 为准。
 
@@ -60,7 +68,7 @@
 
 | 端点 | 用途 | 决策性约束 |
 |---|---|---|
-| `POST /auth/wx-login` | code 换买家 JWT | code 一次性；事务提交后才签发；失败归 2xxx 段；公开端点按 IP 限流 20 次/分钟（换取 openid 前无账号维度可限） |
+| `POST /auth/wx-login` | code 换买家 JWT | code 一次性；事务提交后才签发；失败返回业务码 2002；公开端点按 IP 限流 20 次/分钟（换取 openid 前无账号维度可限） |
 | `GET /products` | 商品列表（仅 on_sale） | 公开；查询参数 `category`（目录键，空为全部）与 `keyword`（商品名，大小写不敏感）；按 `id DESC`，走 `(status, id)` 索引；分页 |
 | `GET /categories` | 分类目录 | 公开；静态目录键 × 在售实时计数，按展示顺序返回数组，不分页 |
 | `GET /products/{productId}` | 商品详情 | 公开；不存在或非在售返回 404 |
@@ -86,7 +94,7 @@
 | `POST /auth/password` | 改密 | `admin:self` | 验旧密码；哈希更新与 `token_version` 递增同事务 |
 | `GET /products` / `POST /products` | 商品列表 / 新建 | `product:read` / `product:write` | 新建默认 `on_sale` |
 | `GET /products/{productId}` / `PATCH /products/{productId}` | 详情 / 编辑含上下架 | `product:read` / `product:write` | 图片只接受服务端 object key 数组；`category` 限目录键，未知键 422 |
-| `POST /images` | 上传商品图 | `image:write` | multipart 单文件 ≤ 2MB，仅 JPEG/PNG/WebP，校验魔数与解码；UUID key |
+| `POST /images` | 上传商品图 | `image:write` | multipart 单文件 ≤ 2MB，仅 JPEG/PNG/WebP，校验魔数与解码；管理后台对超限图片先自动压缩；UUID key |
 | `GET /orders` / `GET /orders/{orderId}` | 全量订单查询 | `order:read` | 列表含收货信息，按脱敏规则展示 |
 | `POST /orders/{orderId}/ship` | 发货 | `order:ship` | 仅 `paid → shipped`；`shipped_by` 取 JWT |
 | `GET /refunds` | 退款待审列表 | `refund:read` | 只读 |

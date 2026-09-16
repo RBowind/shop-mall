@@ -6,7 +6,7 @@
 
 - techspec: `docs/tech-specs/shop-mall-tech-spec.md` §2；`docs/tech-specs/interfaces.md` 买家域端点；`docs/tech-specs/data-model.md` cart_items
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: 加购需登录且同商品合并数量
 
@@ -21,6 +21,7 @@ The system SHALL 要求登录后加购；同一买家同一商品只保留一行
 
 - **WHEN** 无有效买家 JWT（JSON Web Token，服务端签名令牌）请求加购
 - **THEN** 响应 401，购物车不变
+
 
 ### Requirement: 购物车行内管理
 
@@ -46,6 +47,7 @@ The system SHALL 支持改数量与删除，状态持久在服务端。
 - **WHEN** 提交数量小于等于 0 或非整数
 - **THEN** 返回参数错误，行不变
 
+
 ### Requirement: 不可购标记
 
 The system SHALL 在购物车列表中标出已下架或缺货的行，且商品下架不删除购物车记录。
@@ -66,6 +68,7 @@ The system SHALL 在购物车列表中标出已下架或缺货的行，且商品
 - **WHEN** 买家在小程序点击"去结算"
 - **AND** 购物车存在不可购行
 - **THEN** 小程序只提交可购行，并给出拦截提示
+
 
 ## Coverage Gaps
 

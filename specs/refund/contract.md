@@ -1,21 +1,22 @@
 # Sprint Contract: refund
 Source: specs/refund/spec.md
-Status: APPROVED（人 gate 已过，2026-09-01；2026-09-02 由 devloop 启动时经用户确认统一改标记）
+Status: DRAFT（待独立 Evaluator 与人 gate）
 
-## Behavioral（from spec scenarios）
-- [ ] B1: 申请成功——paid→refund_requested，原因与申请时间留存可见 — verified by BDD test
-- [ ] B2: 已发货订单申请——409 状态不变（收紧现实现：后端当前放行 shipped，需按本契约改守卫） — verified by BDD test
-- [ ] B3: 其他状态申请——409 — verified by BDD test
-- [ ] B4: 申请他人订单退款——404 — verified by BDD test
-- [ ] B5: 审批通过——同事务退积分+order_refund 流水+回库存+refunded+审核留痕+成功审计 — verified by BDD test
-- [ ] B6: 重复或并发审批——409 不重复退分回库存 — verified by BDD test
-- [ ] B7: 无审批权限——403+失败审计 — verified by BDD test
-- [ ] B8: 驳回成功——回 paid+原因留痕，无账务库存副作用 — verified by BDD test
-- [ ] B9: 缺少拒绝原因——1xxx 参数错误订单不变 — verified by BDD test
-- [ ] B10: 重复驳回——409 状态原因留痕均不变 — verified by BDD test
-- [ ] B11: 驳回后再次申请——正常进入 refund_requested — verified by BDD test
-- [ ] B12: 查看列表——refund_requested 与 refunded 含原因 — verified by BDD test
-- [ ] B13: 无查看权限——403 — verified by BDD test
+## Behavioral Changes
+
+- [ ] B1 [MODIFIED]: 申请退款仅限未发货订单 / 申请成功 — verified by BDD test
+- [ ] B2 [MODIFIED]: 申请退款仅限未发货订单 / 已发货订单申请 — verified by BDD test
+- [ ] B3 [MODIFIED]: 申请退款仅限未发货订单 / 其他状态申请 — verified by BDD test
+- [ ] B4 [MODIFIED]: 申请退款仅限未发货订单 / 申请他人订单退款 — verified by BDD test
+- [ ] B5 [MODIFIED]: 审批通过退还积分并回补库存 / 审批通过 — verified by BDD test
+- [ ] B6 [MODIFIED]: 审批通过退还积分并回补库存 / 重复或并发审批 — verified by BDD test
+- [ ] B7 [MODIFIED]: 审批通过退还积分并回补库存 / 无审批权限 — verified by BDD test
+- [ ] B8 [ADDED]: 驳回仅回退状态 / 驳回成功 — verified by BDD test
+- [ ] B9 [ADDED]: 驳回仅回退状态 / 缺少拒绝原因 — verified by BDD test
+- [ ] B10 [ADDED]: 驳回仅回退状态 / 重复驳回 — verified by BDD test
+- [ ] B11 [ADDED]: 驳回仅回退状态 / 驳回后再次申请 — verified by BDD test
+- [ ] B12 [ADDED]: 退款列表查看 / 查看列表 — verified by BDD test
+- [ ] B13 [ADDED]: 退款列表查看 / 无查看权限 — verified by BDD test
 
 ## Quality
 - [ ] Q1: 后端全量测试 `go test ./...` 绿
