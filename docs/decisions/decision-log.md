@@ -52,3 +52,16 @@
 - 为什么：单文件 ci.yml 里"挡合并的"和"出产物的"混在一起；拆开后触发器即语义。第五道 coverage 门防 AI 刷测试指标——口径只看 PR 改动行（阈值在 workflow 配置里，正文不复述数字）。变异测试每变异点重连库重跑是分钟级，当 PR 门会把等待时间炸掉，故走夜跑报告，数据够了再议升格。
 - 选型记录：改动行覆盖率用 diff-cover（Bachmann1234/diff-cover）+ gocover-cobertura 转换管道，不用 go-test-coverage（vladopajic）——源码核实其 diff 是"总覆盖率相对 base 可降幅度"，不是改动行口径；axw/gocov 钉死的老版 x/tools 在 Go 1.27 编译失败，一并排除；不接 Codecov SaaS，红灯判定留在仓内可查。
 - 边界：main 开 required checks + enforce admins，不开 required approvals（单人仓库，配了 PR 永远锁死）；一键发布/回滚和 claude-code-action AI 初审归下一课，本仓库不装。
+
+## 术语：占用词根统一为 hold，lock 保留给行级并发控制
+
+- 决策：业务占用一律用 hold——库存侧字段为 `hold_stock`（不用 `locked_stock`），券侧的占用态枚举为 `held`（不用 `locked`）。`lock` 一词专指数据库行级并发控制，不用于业务层。
+- 为什么：券的占用态与库存的占用数是同一类概念，必须共用一个词。`docs/CONTEXT.md` 1.1 已把 `lock` 定义为「是机制而非业务动作；不暴露给业务层 API」；若把券状态命名为 `locked`、库存列命名为 `locked_stock`，业务层的"占用"就被命名成了数据库机制，读文档的人会以为业务层需要管行级锁。两侧当时均零实现（后端无该列，券域未开工），改动零迁移成本。
+- 选型记录：另一条路是反向统一到 lock（把 `hold_stock` 改成 `locked_stock`，只动 6 处，比正向前少一半行数），弃用理由是行数省下的成本不在点上——它要推翻 1.1 那条刻意的建模边界，且会让「锁」在业务层重新变得歧义。
+- 边界：中文「锁定库存」作为 `hold_stock` 的近义口语仍可在行文出现；裸「锁定」不再表示占用，只指 1.1 的行级并发控制机制。券端点尚未进 `docs/api/openapi.yaml`，券的契约源暂为 `docs/architecture/07-coupon-pay-lifecycle.md` §5。
+
+## 术语：成交 = 支付成功，下单不称成交
+
+- 决策：`成交` 专指订单从 `pending_payment` 转为 `paid` 的那一刻（买家确认支付成功）；下单只称「下单成功」。
+- 为什么：商城语境里成交意味着钱货两讫，下单只是提交意向。此前 `specs/checkout/spec.md` 用「成交瞬间」指下单时的快照固化点，与 `specs/order-payment/spec.md` 及 07 文档里指支付成功的用法冲突。词表新增 `成交（deal）` 词条固定此义。
+- 边界：不改数据库、接口或字段名，纯文档口径。

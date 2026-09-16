@@ -6,7 +6,7 @@
 
 - techspec: `docs/tech-specs/shop-mall-tech-spec.md` §2；`docs/tech-specs/interfaces.md` 买家域端点；`docs/tech-specs/data-model.md` cart_items
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: 加购需登录且同商品合并数量
 
@@ -21,6 +21,7 @@ The system SHALL 要求登录后加购；同一买家同一商品只保留一行
 
 - **WHEN** 无有效买家 JWT（JSON Web Token，服务端签名令牌）请求加购
 - **THEN** 响应 401，购物车不变
+
 
 ### Requirement: 购物车行内管理
 
@@ -46,6 +47,7 @@ The system SHALL 支持改数量与删除，状态持久在服务端。
 - **WHEN** 提交数量小于等于 0 或非整数
 - **THEN** 返回参数错误，行不变
 
+
 ### Requirement: 不可购标记
 
 The system SHALL 在购物车列表中标出已下架或缺货的行，且商品下架不删除购物车记录。
@@ -58,7 +60,7 @@ The system SHALL 在购物车列表中标出已下架或缺货的行，且商品
 #### Scenario: 库存不足
 
 - **WHEN** 买家请求 `GET /api/v1/cart`
-- **AND** 某行对应商品的当前库存小于该行数量
+- **AND** 某行对应商品的当前库存小于该行数量（零库存行因数量至少为 1 同样落在此条件内）
 - **THEN** 该行被标记为不可购
 
 #### Scenario: 客户端拦截结算
@@ -67,6 +69,7 @@ The system SHALL 在购物车列表中标出已下架或缺货的行，且商品
 - **AND** 购物车存在不可购行
 - **THEN** 小程序只提交可购行，并给出拦截提示
 
+
 ## Coverage Gaps
 
-- 直接调用加购接口提交一个已下架或零库存商品，服务端接受还是拒绝、用什么错误码，techspec 与 PRD 均未定义。
+- 直接调用加购接口提交一个已下架或零库存商品，服务端接受还是拒绝、用什么错误码，techspec 与产品需求文档（PRD）均未定义；`docs/api/openapi.yaml` 的 `addCartItem` 只声明了「可返回 422 业务错误」，未点明触发条件。

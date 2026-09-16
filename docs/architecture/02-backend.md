@@ -1,5 +1,7 @@
 # 后端架构（Go + Gin + GORM）
 
+> 当前目标状态：优惠券、待支付订单、确认支付与超时取消的行为以 `07-coupon-pay-lifecycle.md` 为准；本文旧版下单即支付段落只作为迁移前基线。
+
 端间契约、接口分组、鉴权方式和订单状态机见 `00-overview.md` 与 `../api/openapi.yaml`，本文只写后端内部边界。
 
 ## 1. 职责边界
@@ -115,7 +117,7 @@ code2Session（事务外）
 - `admin_adjust` 必须有管理员 ID和非空备注；管理员不能直接修改余额字段。
 - 管理员积分调整使用 `Idempotency-Key` 作为请求幂等键；服务端派生 `event_key = admin_adjust:{admin_id}:{idempotency_key}`（幂等域为发起操作的管理员），并保存规范化请求的 `request_hash`；同 key 同 hash 重放原流水，不同 hash 返回 409。
 - 余额更新和流水写入必须同一事务，流水的 `balance_after` 使用余额 UPDATE 的 `RETURNING` 值。
-- 定期对账 `SUM(points_ledger.delta)` 与 `users.points_balance`；不一致只报警和冻结相关运营操作，不自动改账。
+- 定期对账 `SUM(points_ledger.delta)` 与 `users.points_balance`；不一致只报警并冻结 `admin_adjust` 积分调整，不自动改账。
 
 角色和管理员账号变更由 `application/access` usecase 编排：角色变更同时写 `roles`、`role_permissions` 和 `audit_logs`；管理员变更同时写 `admin_users`、必要的 `token_version` 和 `audit_logs`。这些操作使用同一事务，锁顺序为管理员行 -> 角色行 -> 权限映射，并按 `40P01/40001` 重试完整事务。
 

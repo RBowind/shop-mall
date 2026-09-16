@@ -1,30 +1,32 @@
 # Sprint Contract: checkout
 Source: specs/checkout/spec.md
-Status: APPROVED（人 gate 已过，2026-09-01；2026-09-02 由 devloop 启动时经用户确认统一改标记）
+Status: DRAFT（待独立 Evaluator 与人 gate）
 
-## Behavioral（from spec scenarios）
-- [ ] B1: 新增地址——version=1，首个不自动默认 — verified by BDD test
-- [ ] B2: 设默认顶替旧默认 — verified by BDD test
-- [ ] B3: 并发设默认——最终恰有一个且为二者之一 — verified by BDD test
-- [ ] B4: 编辑递增版本 — verified by BDD test
-- [ ] B5: 地址列表——含默认标记与版本号 — verified by BDD test
-- [ ] B6: 删除地址——列表不再返回，历史快照不受影响 — verified by BDD test
-- [ ] B7: 操作非本人地址——404 — verified by BDD test
-- [ ] B8: 下单成功——同事务扣库存扣积分建单流水删行+成交时间 — verified by BDD test
-- [ ] B9: 请求体不携带价格与身份——服务端不采信 — verified by BDD test
-- [ ] B10: 积分不足——5xxx 整体回滚且键不留存可重试 — verified by BDD test
-- [ ] B11: 库存不足——3xxx 整体回滚 — verified by BDD test
-- [ ] B12: 提交含已下架商品的行——3xxx 回滚 — verified by BDD test
-- [ ] B13: 提交非本人的行或地址——404 无副作用 — verified by BDD test
-- [ ] B14: 原样重放——返回原订单无新副作用 — verified by BDD test
-- [ ] B15: 同键不同内容——409 — verified by BDD test
-- [ ] B16: 内容一致的判定范围——改行/数量/地址版本即新意图 — verified by BDD test
-- [ ] B17: 并发双击提交——只一单，另一重放或 409 — verified by BDD test
-- [ ] B18: 商品后续变更不影响——详情返回成交快照 — verified by BDD test
-- [ ] B19: 按状态过滤——五状态一一对应 — verified by BDD test
-- [ ] B20: 列表不带状态参数——返回本人全部 — verified by BDD test
-- [ ] B21: 订单详情内容——含退款原因与拒绝原因 — verified by BDD test
-- [ ] B22: 查询他人订单——404 — verified by BDD test
+## Behavioral Changes
+
+- [ ] B1 [ADDED]: 收货地址管理 / 新增地址 — verified by BDD test
+- [ ] B2 [ADDED]: 收货地址管理 / 设默认顶替旧默认 — verified by BDD test
+- [ ] B3 [ADDED]: 收货地址管理 / 并发设默认 — verified by BDD test
+- [ ] B4 [ADDED]: 收货地址管理 / 编辑递增版本 — verified by BDD test
+- [ ] B5 [ADDED]: 收货地址管理 / 地址列表 — verified by BDD test
+- [ ] B6 [ADDED]: 收货地址管理 / 删除地址 — verified by BDD test
+- [ ] B7 [ADDED]: 收货地址管理 / 操作非本人地址 — verified by BDD test
+- [ ] B8 [ADDED]: 订单快照 / 商品后续变更不影响 — verified by BDD test
+- [ ] B9 [MODIFIED]: 服务端定价下单 / 下单成功 — verified by BDD test
+- [ ] B10 [MODIFIED]: 服务端定价下单 / 余额不足不再是下单门槛 — verified by BDD test
+- [ ] B11 [MODIFIED]: 服务端定价下单 / 券资格服务端判定 — verified by BDD test
+- [ ] B12 [MODIFIED]: 服务端定价下单 / 请求体不携带价格与身份 — verified by BDD test
+- [ ] B13 [MODIFIED]: 服务端定价下单 / 库存不足 — verified by BDD test
+- [ ] B14 [MODIFIED]: 服务端定价下单 / 提交含已下架商品的行 — verified by BDD test
+- [ ] B15 [MODIFIED]: 服务端定价下单 / 提交非本人的行或地址 — verified by BDD test
+- [ ] B16 [MODIFIED]: 下单幂等 / 原样重放 — verified by BDD test
+- [ ] B17 [MODIFIED]: 下单幂等 / 同键不同内容 — verified by BDD test
+- [ ] B18 [MODIFIED]: 下单幂等 / 内容一致的判定范围 — verified by BDD test
+- [ ] B19 [MODIFIED]: 下单幂等 / 并发双击提交 — verified by BDD test
+- [ ] B20 [MODIFIED]: 买家订单查询 / 按状态过滤 — verified by BDD test
+- [ ] B21 [MODIFIED]: 买家订单查询 / 列表不带状态参数 — verified by BDD test
+- [ ] B22 [MODIFIED]: 买家订单查询 / 订单详情内容 — verified by BDD test
+- [ ] B23 [MODIFIED]: 买家订单查询 / 查询他人订单 — verified by BDD test
 
 ## Quality
 - [ ] Q1: 后端全量测试 `go test ./...` 绿
@@ -38,7 +40,7 @@ Status: APPROVED（人 gate 已过，2026-09-01；2026-09-02 由 devloop 启动�
 
 ## Follow-ups
 - FU-f2c8b347: 删除默认地址后允许暂无默认还是自动顶替，待产品口径。
-- FU-a1f4c902: openapi.yaml 缺失，下单请求体字段级校验以入库后的契约为断言依据。
+- FU-6d2a90f3: `request_hash` 中 `coupon_id` 的规范化编码（未选券与选券两种输入的字节级编码）发布前冻结，沿用主档"编码冻结"条款。
 
 ## Pass Rule
 ALL B* 断言全过 + ALL Q* + lint/test 绿。

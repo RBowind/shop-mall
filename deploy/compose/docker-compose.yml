@@ -161,8 +161,15 @@ services:
       - sh
       - -ec
       - |
-        psql -h migration-postgres -U migration_test -d shop_mall_migration_test -v ON_ERROR_STOP=1 -f /migrations/0001_init.up.sql
-        psql -h migration-postgres -U migration_test -d shop_mall_migration_test -v ON_ERROR_STOP=1 -f /migrations/0002_seed.up.sql
+        # Every migration in the directory, not a hand-kept list: the shell
+        # expands the glob in lexical order, which the zero-padded numeric
+        # prefix keeps identical to numeric order. `-e` plus ON_ERROR_STOP
+        # aborts on the first failing migration. `$$` is compose's escape
+        # for a literal `$`; a bare `$file` would be interpolated away.
+        for file in /migrations/*.up.sql; do
+          echo "applying $$(basename "$$file")"
+          psql -h migration-postgres -U migration_test -d shop_mall_migration_test -v ON_ERROR_STOP=1 -f "$$file"
+        done
     networks:
       - migration
 

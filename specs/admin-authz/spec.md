@@ -6,7 +6,7 @@
 
 - techspec: `docs/tech-specs/shop-mall-tech-spec.md` §2、§5；`docs/tech-specs/flows.md` 第 5 节；`docs/tech-specs/interfaces.md` 鉴权矩阵；`docs/tech-specs/data-model.md` 权限域与账务域 audit_logs
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: 管理员登录
 
@@ -21,18 +21,19 @@ The system SHALL 校验用户名与密码后下发 HttpOnly（脚本不可读）
 #### Scenario: 登录失败
 
 - **WHEN** 登录请求提交不存在的用户名或错误的密码
-- **THEN** 返回同一个统一错误，不区分"账号不存在"与"密码错误"
+- **THEN** 返回同一个统一错误（HTTP 401，业务码 1002），不区分"账号不存在"与"密码错误"
 - **AND** 写一条失败审计
 
 #### Scenario: 撞库限速
 
 - **WHEN** 同一账号或同一来源 IP（Internet Protocol 地址，即客户端网络地址）持续高频尝试登录
-- **THEN** 请求被限速拒绝，不再校验口令
+- **THEN** 请求被限速拒绝（HTTP 429，业务码 3001），不再校验口令
 
 #### Scenario: 已停用账号登录
 
 - **WHEN** 已被停用（enabled=false）的账号提交登录请求
 - **THEN** 拒绝登录
+
 
 ### Requirement: 写请求 CSRF 与 Origin 校验
 
@@ -41,17 +42,18 @@ The system SHALL 要求管理域写请求携带合法 CSRF 头并来自白名单
 #### Scenario: 缺少 CSRF 头
 
 - **WHEN** 会话有效的写请求不带 `X-CSRF-Token`
-- **THEN** 请求被拒绝
+- **THEN** 响应 403，请求被拒绝
 
 #### Scenario: 非白名单来源
 
 - **WHEN** 写请求的 Origin 不在白名单
-- **THEN** 请求被拒绝
+- **THEN** 响应 403，请求被拒绝
 
 #### Scenario: 登录例外
 
 - **WHEN** 登录请求（此时尚无 Cookie）
 - **THEN** 不做 CSRF 校验，依靠 HTTPS、SameSite、Origin 校验与限速保护
+
 
 ### Requirement: 会话即时失效
 
@@ -81,6 +83,7 @@ The system SHALL 在改密、登出或账号停用后，使旧令牌从下一次
 
 - **WHEN** 登录成功 30 分钟后，用同一 Cookie 请求管理域接口
 - **THEN** 响应 401，须重新登录
+
 
 ### Requirement: 权限实时判定
 
@@ -116,6 +119,7 @@ The system SHALL 每次请求按账号当前角色实时读取权限码，权限
 - **WHEN** 部署时买家域与管理域配置了同一签名密钥
 - **THEN** 服务拒绝启动
 
+
 ### Requirement: 角色与管理员账号管理
 
 The system SHALL 让持 `role:manage` 的超管创建角色、变更授权、启停账号：不删除被引用角色、不禁用最后一个超管、账号只停不删。
@@ -124,6 +128,11 @@ The system SHALL 让持 `role:manage` 的超管创建角色、变更授权、启
 
 - **WHEN** 超管新建角色或修改角色权限集合
 - **THEN** 变更生效；审计按"审计日志留存与查询"Requirement 记录；受影响账号的权限判定以"权限实时判定"Requirement 为准
+
+#### Scenario: 创建重名角色
+
+- **WHEN** 超管新建的角色名与既有角色重复
+- **THEN** 响应 409，角色不创建
 
 #### Scenario: 删除被引用角色
 
@@ -150,6 +159,7 @@ The system SHALL 让持 `role:manage` 的超管创建角色、变更授权、启
 - **WHEN** 角色授权提交系统中不存在的权限码
 - **THEN** 响应 422，角色不变
 
+
 ### Requirement: 会员查询
 
 The system SHALL 向持 `user:read` 的管理员提供买家列表只读查询：关键词为纯数字时按买家标识匹配，否则按昵称匹配。
@@ -164,9 +174,10 @@ The system SHALL 向持 `user:read` 的管理员提供买家列表只读查询�
 - **WHEN** 角色不含 `user:read` 的管理员（如运营）请求 `GET /api/admin/v1/users`
 - **THEN** 响应 403
 
+
 ### Requirement: 审计日志留存与查询
 
-The system SHALL 对登录成败、改密、停用账号、商品变更、图片上传、发货、退款审批、积分调整、权限变更写只追加审计，记录操作人、角色快照、动作、对象、结果、脱敏变更摘要、操作时间与 trace_id（链路追踪标识）；审计只可查询不可改写。
+The system SHALL 对登录成败、改密、停用账号、商品变更、图片上传、发货、退款审批、积分调整、权限变更写只追加审计，记录操作人、角色快照、动作、对象、结果、脱敏变更摘要、操作时间与 trace_id（请求追踪标识）；审计只可查询不可改写。
 
 #### Scenario: 成功操作留痕
 
@@ -189,7 +200,6 @@ The system SHALL 对登录成败、改密、停用账号、商品变更、图片
 - **THEN** 令牌、密码、微信 code、session_key（微信会话密钥）完全不出现在普通业务日志与审计摘要中
 - **AND** 手机号、收货详细地址只以脱敏形式出现
 
-## MODIFIED Requirements
 
 ### Requirement: 登出与改密挂 `admin:self` 权限码
 
@@ -205,10 +215,7 @@ The system SHALL 要求登出与改密请求通过 `admin:self` 权限码判定�
 - **WHEN** 运营或超管账号登出、改密
 - **THEN** 正常放行
 
+
 ## Coverage Gaps
 
-- 管理端登录失败（401/限速 429）归属的业务错误码段未定（2xxx 现定义为微信认证与登录态过期），沿用 techspec follow-up FU-7a4d2e8b。
-- CSRF 头缺失与 Origin 非白名单的拒绝响应码未定（源材料只给"401 或 403"区间），本 spec 只约束"被拒绝"。
-- 创建重名角色的冲突响应口径未定（数据模型仅约束角色名唯一，源材料未给错误码）。
 - 审计摘要与列表展示的脱敏格式未定，沿用 FU-1c6f9b3e。
-- 错误响应统一回传 trace_id 属全局接口规范（techspec §5 统一响应），未在本 spec 单列，归属转人确认。

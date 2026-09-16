@@ -2,6 +2,8 @@
 
 本文件是全系统主流程的详情，入口与鸟瞰图见 [`shop-mall-tech-spec.md`](./shop-mall-tech-spec.md) 第 4 节。流程图与字段名以 [`data-model.md`](./data-model.md) 和 [`../api/openapi.yaml`](../api/openapi.yaml) 为准。
 
+> 当前目标状态：优惠券、待支付订单、确认支付与超时取消的流程以 [`../architecture/07-coupon-pay-lifecycle.md`](../architecture/07-coupon-pay-lifecycle.md) 为准；本文中旧版“下单即支付”流程只作为迁移前基线。
+
 ## 全局事务与并发规则
 
 所有主流程共享同一套事务规则（依据 [`../architecture/02-backend.md`](../architecture/02-backend.md)）：
@@ -28,7 +30,7 @@ sequenceDiagram
     B->>W: code2Session（事务外）
     alt code2Session 失败
         W-->>B: 错误
-        B-->>M: 2xxx 认证错误，不建用户
+        B-->>M: 2002 认证业务错误，不建用户
         M->>M: 重新 wx.login 获取新 code
     else 成功
         W-->>B: openid + session_key

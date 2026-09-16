@@ -267,6 +267,9 @@ func TestPublicProductRoutes(t *testing.T) {
 	if data["total"].(float64) != 1 {
 		t.Fatalf("total = %v, want 1 (off_sale hidden)", data["total"])
 	}
+	if data["page_size"].(float64) != 10 {
+		t.Fatalf("page_size = %v, want 10", data["page_size"])
+	}
 	items := data["list"].([]any)
 	first := items[0].(map[string]any)
 	if first["name"] != "Hero" {

@@ -2,6 +2,8 @@
 
 本文档是整个项目的架构入口。接口字段、错误码和鉴权细节以 `../api/openapi.yaml` 为唯一契约源；端内实现看 01~04，数据库落库细节看 `05-database.md`。
 
+> 当前目标状态：优惠券、待支付订单、确认支付、超时取消及七状态订单机以 `07-coupon-pay-lifecycle.md` 为准；本文旧版下单即支付流程已由该 feature techspec 覆盖。
+
 ## 1. 系统拓扑
 
 ```mermaid
@@ -101,7 +103,7 @@ flowchart LR
 | 订单 | 4000-4999 | 幂等冲突、状态迁移非法 |
 | 积分 | 5000-5999 | 余额不足 |
 
-- 分页：`page` 从 1 起，`page_size` 默认 20、上限 100；响应包含 `list`、`total`、`page`、`page_size`。
+- 分页：`page` 从 1 起，通用接口 `page_size` 默认 20、上限 100；公开商品、分类与搜索列表默认 10；响应包含 `list`、`total`、`page`、`page_size`。
 - 时间：ISO 8601 UTC，Go 使用 RFC3339。
 - 商品列表按 `id DESC` 排序，配合 `(status, id)` 索引。
 - 积分、价格、库存和数量全部使用整数。
@@ -109,7 +111,7 @@ flowchart LR
 
 ## 4. 数据模型
 
-总览级 ER 只定实体、关键字段和关系，建表细节以 `05-database.md` 为准。
+总览级 ER 只定实体、关键字段和关系，建表细节以 `05-database.md` 为准。 优惠券实体与订单支付新增字段见 `07-coupon-pay-lifecycle.md`，不在此图重复展开。
 
 ```mermaid
 erDiagram
@@ -260,38 +262,15 @@ sequenceDiagram
 
 `session_key` 不落库、不下发、不写日志。事务提交失败时不签发 JWT；客户端重新调用 `wx.login()` 获取新 code。
 
-### 5.2 下单
+### 5.2 下单、支付与超时取消
 
-```mermaid
-sequenceDiagram
-    participant M as 小程序
-    participant B as Go 后端
-    participant U as application/order usecase
-    participant DB as PostgreSQL
+当前目标流程见 [`07-coupon-pay-lifecycle.md`](07-coupon-pay-lifecycle.md)，这里只保留总览：
 
-    M->>B: POST /api/v1/orders + Idempotency-Key
-    B->>U: 校验 token 格式和请求参数
-    U->>DB: 开启事务，FOR UPDATE 锁定该 user + token 的已有订单并比较 request_hash
-    alt 已有相同请求
-        U-->>B: 返回原订单，不执行副作用
-    else 新请求
-        U->>DB: 锁用户行，校验地址与购物车项归属
-        U->>DB: 按 product_id 顺序锁定商品并读取最新价格
-        U->>DB: 创建订单与明细（保存快照），计算总积分
-        U->>DB: 条件扣库存
-        U->>DB: 条件扣积分并取得 balance_after
-        U->>DB: 写 order_pay 流水并删除所选购物车项
-        alt 任一步失败
-            U->>DB: 整体回滚，token 可重试
-            U-->>B: 库存/积分/业务错误
-        else 全部成功
-            U->>DB: 提交事务
-            U-->>B: 订单号，状态=paid
-        end
-    end
-```
-
-相同 token 的并发首建请求由 `(user_id, client_token)` 唯一约束处理：撞约束的事务回滚后重读获胜订单，按 `request_hash` 答复重放或冲突；不能把其他唯一约束冲突误判成幂等重放。
+- 买家在结算时可选一张 `available` 券；服务端按当前商品价格和券规则计算金额。
+- 下单成功生成 `pending_payment` 订单，预占可售库存与优惠券，积分余额不变。
+- 买家确认支付后，订单转为 `paid`，扣减积分、写 `order_pay` 流水、消耗预占库存并把券置为 `used`。
+- 超过支付截止时间仍未支付的订单转为 `cancelled`，释放库存预占；优惠券按有效期回到 `available` 或置为 `expired`。
+- 支付与超时取消竞速时，只有一个结果生效，另一方不产生副作用。
 
 ### 5.3 退款
 
@@ -344,7 +323,9 @@ sequenceDiagram
 
 ```mermaid
 stateDiagram-v2
-    [*] --> paid : 下单成功（积分即时扣减）
+    [*] --> pending_payment : 下单（预占库存与券）
+    pending_payment --> paid : 确认支付（扣积分）
+    pending_payment --> cancelled : 超时取消（释放占用）
     paid --> shipped : 管理员发货
     shipped --> completed : 用户确认收货
     paid --> refund_requested : 用户申请退款
@@ -352,11 +333,13 @@ stateDiagram-v2
     refund_requested --> paid : 管理员驳回
     completed --> [*]
     refunded --> [*]
+    cancelled --> [*]
 ```
 
-- 状态迁移必须在 service 层通过白名单校验，并在数据库更新语句中带原状态条件。
+- 状态迁移必须由服务端按允许路径校验，并在更新时带原状态条件。
 - 退款只允许从 `refund_requested` 审批；发货只允许从 `paid` 迁移。
-- 不存在待支付、自动确认收货和物流单号状态。
+- 不存在买家主动取消、自动确认收货和物流单号状态。
+- 券状态机（`available`、`held`、`used`、`expired`）见 [`07-coupon-pay-lifecycle.md`](07-coupon-pay-lifecycle.md)。
 
 ## 7. 安全与隐私
 

@@ -10,7 +10,7 @@
 
 ## 1. 背景与目标
 
-现状下单即支付：提交订单的同一事务里直接扣积分、生成已支付订单，商品是单一定价，没有任何营销能力。本功能把下单拆成"下单预占 → 确认支付"两个动作，新增满减券，并让超时未支付的订单由后台任务自动取消、释放占用的库存和券。
+变更前下单即支付：提交订单的同一事务里直接扣积分、生成已支付订单，商品是单一定价，没有任何营销能力。本功能把下单拆成"下单预占 → 确认支付"两个动作，新增满减券，并让超时未支付的订单由后台任务自动取消、释放占用的库存和券。
 
 用户结果：买家能领券、用券，下单后有一段时间决定要不要付；超时不付订单自动作废，库存和券回到可卖、可领的状态。管理员能创建和停发券模板，能看已领取与已核销数量。
 
@@ -82,13 +82,13 @@
 | `id` | UUID | 服务生成（UUIDv7） | PK |
 | `user_id` | UUID | JWT 派生 | 外键 `users`，级联删除 |
 | `template_id` | UUID | 请求输入（领取时） | 外键 `coupon_templates`，RESTRICT |
-| `status` | VARCHAR(16) | 服务迁移 | 枚举 `available` \| `locked` \| `used` \| `expired`，插入即 `available` |
+| `status` | VARCHAR(16) | 服务迁移 | 枚举 `available` \| `held` \| `used` \| `expired`，插入即 `available` |
 | `order_id` | UUID | 服务写入（锁券时） | 外键 `orders`，可空；记录最近一次占用它的订单 |
 | `request_id` | VARCHAR(64) | 客户端输入（领取时的 `Idempotency-Key`） | 可空（仅领取路径写入）；领取幂等键 |
 
 决策性约束：
 
-- 部分唯一索引 `ON (order_id) WHERE status IN ('locked','used')`：一张券同一时刻至多被一笔在途或已成交订单占用；取消释放后索引让位，同一券可再被新订单使用，历史 `order_id` 保留作留痕。
+- 部分唯一索引 `ON (order_id) WHERE status IN ('held','used')`：一张券同一时刻至多被一笔在途或已成交订单占用；取消释放后索引让位，同一券可再被新订单使用，历史 `order_id` 保留作留痕。
 - 券本身不存规则快照，门槛与抵扣实时取自 `coupon_templates`；这成立的前提是模板规则创建后不可变（§1 范围限制）。
 - 索引 `(user_id, status, id DESC)` 供我的券与结算页券列表。
 - 每人限领：领取事务内锁模板行（`FOR UPDATE`），数出该用户此模板的持券数与 `per_user_limit` 比较，再走上面的条件扣减；行锁串行 + 扣减兜底，与商品防超卖同一套路。
@@ -96,7 +96,7 @@
 
 ### products 变更
 
-新增 `locked_stock INT`（来源：服务维护；默认 0；CHECK `>= 0`）。`stock` 含义收窄为"可售、不含预占"，现有"下单即扣减"路径废弃。三处迁移语义：下单 `stock - q` 且 `locked_stock + q`（条件 `stock >= q`）；支付成功 `locked_stock - q`（库存售出）；超时取消 `locked_stock - q` 且 `stock + q`（回补）。存量数据无需换算（`locked_stock` 补 0 即可）。
+新增 `hold_stock INT`（来源：服务维护；默认 0；CHECK `>= 0`）。`stock` 含义收窄为"可售、不含预占"，现有"下单即扣减"路径废弃。三处迁移语义：下单 `stock - q` 且 `hold_stock + q`（条件 `stock >= q`）；支付成功 `hold_stock - q`（库存售出）；超时取消 `hold_stock - q` 且 `stock + q`（回补）。存量数据无需换算（`hold_stock` 补 0 即可）。
 
 ### orders 变更
 
@@ -109,7 +109,7 @@
 | `cancelled_at`    | TIMESTAMPTZ | 服务生成 | 可空                                                                                                              |
 | `paid_at`         | TIMESTAMPTZ | 服务生成 | 从"默认 now"改为待支付→已支付迁移时写入；列改为可空                                                                                   |
 
-不变的部分：`total_points` 仍是明细快照价合计（原价口径）；`(user_id, client_token)` 幂等、地址与商品快照、既有五个状态间的一致性 CHECK 全部保留。
+不变的部分：`total_points` 仍是明细快照价合计（原价口径）；`(user_id, client_token)` 幂等、地址与商品快照、变更前五个状态间的一致性 CHECK 约束继续保留并扩展到七状态。
 
 决策性约束（新增与扩展）：
 
@@ -144,8 +144,8 @@ erDiagram
         uuid id PK
         uuid user_id FK
         uuid template_id FK
-        string status "available | locked | used | expired"
-        uuid order_id "可空留痕；locked|used 时部分唯一"
+        string status "available | held | used | expired"
+        uuid order_id "可空留痕；held|used 时部分唯一"
     }
     ORDER {
         uuid id PK
@@ -157,7 +157,7 @@ erDiagram
     }
     PRODUCT {
         int stock "可售，不含预占"
-        int locked_stock "预占"
+        int hold_stock "预占"
     }
 ```
 
@@ -192,10 +192,10 @@ stateDiagram-v2
 ```mermaid
 stateDiagram-v2
     [*] --> available : 领取
-    available --> locked : 下单占用
-    locked --> used : 订单支付成功
-    locked --> available : 订单取消且未过期
-    locked --> expired : 订单取消时已过期
+    available --> held : 下单占用
+    held --> used : 订单支付成功
+    held --> available : 订单取消且未过期
+    held --> expired : 订单取消时已过期
     available --> expired : 过期扫描
     used --> available : 退款审批通过且未过期
     used --> expired : 退款审批通过但已过期
@@ -222,15 +222,15 @@ sequenceDiagram
     else 新请求
         U->>DB: FOR UPDATE 锁模板行
         alt 模板不存在 / 非 active / 早于 valid_from / 已过 valid_until
-            U-->>M: 6xxx 券不可领取
+            U-->>M: 2002 券不可领取
         else
             U->>DB: 统计该用户此模板持券数
             alt 达到 per_user_limit
-                U-->>M: 6xxx 已达限领（回滚）
+                U-->>M: 2002 已达限领（回滚）
             else
                 U->>DB: 条件扣减 received_count（< total_count）
                 alt 影响行数 0（售罄）
-                    U-->>M: 6xxx 已领完（回滚）
+                    U-->>M: 2002 已领完（回滚）
                 else
                     U->>DB: INSERT user_coupons（available，request_id）
                     U->>DB: 提交
@@ -261,12 +261,12 @@ sequenceDiagram
         opt 请求带 coupon_id
             U->>DB: 锁券行，校验归属、available、有效期内、total_points >= 门槛
             alt 任一不满足
-                U->>DB: 回滚，6xxx 券不可用
+                U->>DB: 回滚，2002 券不可用
             end
         end
         U->>DB: INSERT orders（pending_payment，pay_expire_at，total/discount/pay_points）
-        U->>DB: 逐商品条件迁移 stock -> locked_stock（stock >= q）
-        U->>DB: 条件锁券 available -> locked 并写 order_id
+        U->>DB: 逐商品条件迁移 stock -> hold_stock（stock >= q）
+        U->>DB: 条件锁券 available -> held 并写 order_id
         U->>DB: 删除所选购物车项（与订单同事务）
         alt 任一步失败
             U->>DB: 整体回滚，token 不固化
@@ -301,11 +301,11 @@ sequenceDiagram
             U->>DB: 锁用户行，条件扣积分（points_balance >= pay_points，RETURNING 新余额）
             alt 余额不足
                 U->>DB: 整体回滚（订单回到 pending_payment）
-                U-->>M: 5xxx 余额不足，可补分重试
+                U-->>M: 2002 余额不足，可补分重试
             else
                 U->>DB: 写 order_pay 流水（event_key = order_pay:{order_id}）
-                U->>DB: 按 product_id 升序释放 locked_stock（库存售出）
-                U->>DB: 条件迁移券 locked -> used
+                U->>DB: 按 product_id 升序释放 hold_stock（库存售出）
+                U->>DB: 条件迁移券 held -> used
                 U->>DB: 提交
                 U-->>M: 支付成功，订单 paid
             end
@@ -328,7 +328,7 @@ sequenceDiagram
         T->>U: 取消该订单
         U->>DB: 事务，条件抢占 pending_payment -> cancelled，写 cancelled_at
         alt 抢占成功
-            U->>DB: 按 product_id 升序 locked_stock 回补 stock
+            U->>DB: 按 product_id 升序 hold_stock 回补 stock
             U->>DB: 释放券：未过期置 available，已过期置 expired
             U->>DB: 提交
         else 未抢到（用户刚好支付了）
@@ -342,19 +342,19 @@ sequenceDiagram
 
 ### 主流程 5：退款审批通过（对现有流程的变更）
 
-现有抢占-回补结构不变，变更两点：退回积分的金额从 `total_points` 改为 `pay_points`；同一事务内把该订单占用的券从 `locked`/`used` 按有效期置回 `available` 或 `expired`（正常情况下审批时券必为 `used`）。驳回仍然零副作用，券保持 `used`。发货与确认收货流程不变。
+现有抢占-回补结构不变，变更两点：退回积分的金额从 `total_points` 改为 `pay_points`；同一事务内把该订单占用的券从 `held`/`used` 按有效期置回 `available` 或 `expired`（正常情况下审批时券必为 `used`）。驳回仍然零副作用，券保持 `used`。发货与确认收货流程不变。
 
 ## 5. 接口契约
 
 统一响应包裹、分页、鉴权、越权 404 与 CSRF 约定沿用主档（`../tech-specs/interfaces.md`），此处只列新增端点与语义变更；字段级契约冻结进 `../api/openapi.yaml` 后重新生成两端类型。
 
-错误码新增券段 **6000-6999**（语义类：券不可领取、已达限领、已领完、券不可用/不满足门槛）；支付复用积分段 5xxx（余额不足）与订单段 4xxx（状态迁移非法）。
+券相关业务失败复用业务码 `2002`；余额不足同样返回 `2002`；支付状态冲突返回 `2001`。
 
 ### 买家域（`/api/v1`，买家 Bearer JWT）
 
 - `GET /coupons/center` — 领券中心：处于有效期内（`valid_from` 已过、`valid_until` 未到）且 `active` 的模板列表，附当前用户已领数与可领标记；分页。
-- `POST /coupons/{templateId}/receive` — 领取一张券，Header `Idempotency-Key`（UUID，落库为 `user_coupons.request_id`）；同键同模板重放原结果、同键异模板 409；其余错误归 6xxx（图见 §4 主流程 1）。
-- `GET /me/coupons` — 我的券，`status` 查询参数四选一；响应含券名、门槛、抵扣、`valid_until`、状态、占用订单号（`locked`/`used` 时）。
+- `POST /coupons/{templateId}/receive` — 领取一张券，Header `Idempotency-Key`（UUID，落库为 `user_coupons.request_id`）；同键同模板重放原结果、同键异模板 409；其余业务错误归 `2002`（图见 §4 主流程 1）。
+- `GET /me/coupons` — 我的券，`status` 查询参数四选一；响应含券名、门槛、抵扣、`valid_until`、状态、占用订单号（`held`/`used` 时）。
 - `POST /orders` — 请求体新增可选 `coupon_id`；成功响应为 `pending_payment` 订单，含 `total_points`、`discount_points`、`pay_points`、`pay_expire_at`。`coupon_id` 进入 `request_hash` 输入（§3）。
 - `POST /orders/{orderId}/pay` — 确认支付（幂等语义见 §4 主流程 3）；不需要 `Idempotency-Key`，幂等域是订单本身。
 - `GET /orders`、`GET /orders/{orderId}` — 列表与详情视图扩字段：新状态、原价/抵扣/实付、支付时限、券名；`cancelled` 订单可见。

@@ -47,6 +47,11 @@ const publicInt64Pointers = [
   "#/components/schemas/OrderCreateRequest/properties/address_id",
   "#/components/schemas/PointsAdjustRequest/properties/user_id",
   "#/components/schemas/PointsAdjustRequest/properties/delta",
+  "#/components/schemas/AdminMember/properties/id",
+  "#/components/schemas/AdminMember/properties/points_balance",
+  "#/components/schemas/AuditLog/properties/id",
+  "#/components/schemas/AuditLog/properties/actor_admin_id",
+  "#/components/schemas/AuditLog/properties/target_id",
 ];
 
 const unsignedInt64Patterns = new Set(["^[0-9]+$", "^[1-9][0-9]*$"]);

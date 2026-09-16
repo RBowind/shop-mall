@@ -1,20 +1,21 @@
 # Sprint Contract: fulfillment
 Source: specs/fulfillment/spec.md
-Status: APPROVED（人 gate 已过，2026-09-01；2026-09-02 由 devloop 启动时经用户确认统一改标记）
+Status: DRAFT（待独立 Evaluator 与人 gate）
 
-## Behavioral（from spec scenarios）
-- [ ] B1: 发货成功——paid→shipped，发货人取认证身份+成功审计 — verified by BDD test
-- [ ] B2: 状态不符——非 paid 发货 409，操作人时间不改写 — verified by BDD test
-- [ ] B3: 订单不存在——404 — verified by BDD test
-- [ ] B4: 无权限管理员——403+失败审计 — verified by BDD test
-- [ ] B5: 确认成功——shipped→completed+完成时间 — verified by BDD test
-- [ ] B6: 其他状态确认——409 — verified by BDD test
-- [ ] B7: 重复确认——409 不重写完成时间 — verified by BDD test
-- [ ] B8: 确认他人订单——404 — verified by BDD test
-- [ ] B9: 列表查询——全量+脱敏+分页 — verified by BDD test
-- [ ] B10: 详情查询——含脱敏收货信息与各节点时间 — verified by BDD test
-- [ ] B11: 无权限查询——403 — verified by BDD test
-- [ ] B12: 查询不存在的订单——404 — verified by BDD test
+## Behavioral Changes
+
+- [ ] B1 [MODIFIED]: 管理员发货 / 发货成功 — verified by BDD test
+- [ ] B2 [MODIFIED]: 管理员发货 / 状态不符 — verified by BDD test
+- [ ] B3 [MODIFIED]: 管理员发货 / 订单不存在 — verified by BDD test
+- [ ] B4 [MODIFIED]: 管理员发货 / 无权限管理员 — verified by BDD test
+- [ ] B5 [MODIFIED]: 买家确认收货 / 确认成功 — verified by BDD test
+- [ ] B6 [MODIFIED]: 买家确认收货 / 其他状态确认 — verified by BDD test
+- [ ] B7 [MODIFIED]: 买家确认收货 / 重复确认 — verified by BDD test
+- [ ] B8 [MODIFIED]: 买家确认收货 / 确认他人订单 — verified by BDD test
+- [ ] B9 [MODIFIED]: 管理端订单查询 / 列表查询 — verified by BDD test
+- [ ] B10 [MODIFIED]: 管理端订单查询 / 详情查询 — verified by BDD test
+- [ ] B11 [MODIFIED]: 管理端订单查询 / 无权限查询 — verified by BDD test
+- [ ] B12 [MODIFIED]: 管理端订单查询 / 查询不存在的订单 — verified by BDD test
 
 ## Quality
 - [ ] Q1: 后端全量测试 `go test ./...` 绿

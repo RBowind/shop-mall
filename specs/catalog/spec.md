@@ -6,7 +6,7 @@
 
 - techspec: `docs/tech-specs/shop-mall-tech-spec.md` §2、§5；`docs/tech-specs/interfaces.md` 买家域端点；`docs/tech-specs/data-model.md` 商品域
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: 免登录浏览在售商品
 
@@ -16,7 +16,7 @@ The system SHALL 公开商品列表与详情，未登录可访问、可分页，
 
 - **WHEN** 未登录请求 `GET /api/v1/products`
 - **THEN** 返回在售商品的分页列表，按 id 降序
-- **AND** 分页参数 page 从 1 起、page_size 默认 20 上限 100，逐页翻取不重复不遗漏
+- **AND** 分页参数 page 从 1 起、page_size 默认 10 上限 100，逐页翻取不重复不遗漏
 
 #### Scenario: 详情在售
 
@@ -34,6 +34,7 @@ The system SHALL 公开商品列表与详情，未登录可访问、可分页，
 - **AND** 该商品在售且库存为 0
 - **THEN** 正常返回库存为 0 的数据，购买入口由客户端据此禁用
 
+
 ### Requirement: 分类目录与筛选
 
 The system SHALL 提供固定分类目录及各分类的在售实时计数，并支持列表按分类筛选。
@@ -47,6 +48,7 @@ The system SHALL 提供固定分类目录及各分类的在售实时计数，并
 
 - **WHEN** `GET /api/v1/products` 带 category 参数
 - **THEN** 只返回该分类的在售商品；不带或为空时返回全部在售
+
 
 ### Requirement: 商品名搜索
 
@@ -67,6 +69,7 @@ The system SHALL 支持按商品名子串、大小写不敏感搜索。
 - **WHEN** 搜索请求命中超过 50 条商品
 - **THEN** 最多返回 50 条
 
+
 ### Requirement: 图片地址由服务端给出
 
 The system SHALL 返回完整可访问的图片 URL（统一资源定位符），顺序即图集顺序、首图为主图；客户端不自行拼接域名。
@@ -75,6 +78,7 @@ The system SHALL 返回完整可访问的图片 URL（统一资源定位符）�
 
 - **WHEN** 请求 `GET /api/v1/products` 或 `GET /api/v1/products/{productId}`
 - **THEN** 图片字段为完整 URL 数组，第一个元素即主图
+
 
 ### Requirement: 管理端商品维护
 
@@ -114,9 +118,10 @@ The system SHALL 让持 `product:read` / `product:write` 的管理员查询、�
 - **AND** 其角色不含 `product:write`
 - **THEN** 响应 403，且失败审计记录该尝试
 
+
 ### Requirement: 商品图上传
 
-The system SHALL 只接受 JPEG、PNG、WebP 图片且单文件不超过 2MB，上传成功的图片以服务端 object key（文件标识）返回供商品引用。
+The system SHALL 只接受 JPEG、PNG、WebP 图片，单文件不超过 2MB；上传成功的图片以服务端 object key（文件标识）返回供商品引用。
 
 #### Scenario: 合法上传
 
@@ -129,14 +134,19 @@ The system SHALL 只接受 JPEG、PNG、WebP 图片且单文件不超过 2MB，�
 - **WHEN** 上传的文件实际格式不是 JPEG/PNG/WebP（按文件内容与解码判定，不看扩展名）
 - **THEN** 拒绝，不存储
 
-#### Scenario: 超过大小上限
+#### Scenario: 上传超限图片
 
-- **WHEN** 上传的文件超过 2MB
-- **THEN** 服务端拒绝存储，不保存该文件（上传前压缩属小程序端行为，归端内架构文档）
+- **WHEN** 客户端向 `POST /api/admin/v1/images` 上传超过 2MB 的文件
+- **THEN** 服务端拒绝存储并返回 413
+
+#### Scenario: 图集超过上限
+
+- **WHEN** 商品写入请求的 `images` 数组超过 9 个元素
+- **THEN** 响应 422，商品图集不变
+
 
 ## Coverage Gaps
 
-- 商品图集最多 9 张、第一张为主图是产品规则；超出 9 张时服务端拒绝还是截断未定义。
-- PRD F-201"推荐商品"双列网格无服务端契约出处（techspec 无推荐端点），取数口径转人。
-- PRD F-603"图片支持上下架"在数据模型无落点（商品只有整品级状态），按字面做独立图片状态还是删该条目，转人裁决。
+- 产品需求文档（PRD）F-201"推荐商品"双列网格无服务端契约出处（techspec 无推荐端点），取数口径转人。
+- 产品需求文档（PRD）F-603"图片支持上下架"在数据模型无落点（商品只有整品级状态），按字面做独立图片状态还是删该条目，转人裁决。
 - 商品目录键的增删属产品级变更，走变更提案，不在本 spec 范围。

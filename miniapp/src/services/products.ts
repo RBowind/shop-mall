@@ -45,7 +45,7 @@ export async function listProducts(
     list: envelope.data.list ?? [],
     total: envelope.data.total ?? 0,
     page: envelope.data.page ?? 1,
-    page_size: envelope.data.page_size ?? 20,
+    page_size: envelope.data.page_size ?? 10,
   };
 }
 

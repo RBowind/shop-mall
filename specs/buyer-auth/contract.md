@@ -1,22 +1,22 @@
 # Sprint Contract: buyer-auth
 Source: specs/buyer-auth/spec.md
-Status: APPROVED（人 gate 已过，2026-09-01；2026-09-02 由 devloop 启动时经用户确认统一改标记）
+Status: DRAFT（待独立 Evaluator 与人 gate）
 
-## Behavioral（from spec scenarios）
-测试落点：`backend/tests/e2e/buyer_auth_spec_test.go`（2026-09-01 全绿，映射表在该文件头注释）。
-- [x] B1: 登录成功——openid 建号/定位，返回 JWT，session_key 三禁 — `TestSpecBuyerAuthB1_SessionKeyNeverLeaksToResponse` + `TestBuyerLoginSignupBonusIsExactlyOnce`
-- [x] B2: 微信侧换取失败——2xxx 错误，不建用户不签发 — `TestSpecBuyerAuthB2_WeChatFailureIs2xxxBusinessCodeAndCreatesNoUser`（实测 code=2002 ✓）
-- [x] B3: 令牌过期或无效——401 — `TestSpecBuyerAuthB3_ExpiredAndForgedAndAdminTokensRejectedByBuyerAPI`
-- [ ] B4: 客户端失效处理——401 后清会话引导重登 — 端内行为，归小程序 TS 套件（make test），未在本次 Go 层
-- [x] B5: 新用户首登——建号+赠分+signup_bonus 流水同事务 — `TestBuyerLoginSignupBonusIsExactlyOnce` + 单元 `TestLoginUsecaseExecuteOnFirstLoginCreatesUserAndSignupBonus`
-- [x] B6: 老用户重复登录——不重赠 — `TestBuyerLoginSignupBonusIsExactlyOnce`
-- [x] B7: 赠送配置为 0——不更余额不写流水 — `TestSpecBuyerAuthB7_ZeroSignupBonusGrantsNothing`
-- [ ] B8: 登录事务提交失败——不留存不签发 — HTTP 层不可达（需数据库故障注入）；前置失败路径由单元 `TestLoginUsecasePropagatesWeChatError`、`DoesNotInsertUserWhenSessionLookupFails` 覆盖
-- [x] B9: 超限请求——预算外拒绝，不打微信 — `TestSpecBuyerAuthB9_LoginRateLimitedAfterFailedAttempts`；⚠ 实现"登录成功重置 IP 计数"与 spec 字面"每分钟 20 次"有分歧，待裁决（见 spec 冲突记录）
-- [x] B10: 修改昵称——保存后全局生效 — `TestBuyerProfileGetAndUpdate`
-- [x] B11: 上传头像——服务端存储返回完整地址，后续读取生效 — `TestSpecBuyerAuthB11_AvatarUploadReturnsPublicURL`
-- [x] B12: 读取本人资料——GET /me 返回昵称头像余额，身份取令牌 — `TestBuyerProfileGetAndUpdate`
-- [x] B13: 昵称超限——参数错误原值不变 — `TestBuyerProfileGetAndUpdate`（65 字符 → 422）
+## Behavioral Changes
+
+- [ ] B1 [ADDED]: 微信登录签发买家令牌 / 登录成功 — verified by BDD test
+- [ ] B2 [ADDED]: 微信登录签发买家令牌 / 微信侧换取失败 — verified by BDD test
+- [ ] B3 [ADDED]: 微信登录签发买家令牌 / 令牌过期或无效 — verified by BDD test
+- [ ] B4 [ADDED]: 微信登录签发买家令牌 / 客户端失效处理 — verified by BDD test
+- [ ] B5 [ADDED]: 首次登录赠送积分 / 新用户首登 — verified by BDD test
+- [ ] B6 [ADDED]: 首次登录赠送积分 / 老用户重复登录 — verified by BDD test
+- [ ] B7 [ADDED]: 首次登录赠送积分 / 赠送配置为 0 — verified by BDD test
+- [ ] B8 [ADDED]: 首次登录赠送积分 / 登录持久化失败 — verified by BDD test
+- [ ] B9 [ADDED]: 登录接口按 IP 限流 / 超限请求 — verified by BDD test
+- [ ] B10 [ADDED]: 买家资料维护 / 修改昵称 — verified by BDD test
+- [ ] B11 [ADDED]: 买家资料维护 / 上传头像 — verified by BDD test
+- [ ] B12 [ADDED]: 买家资料维护 / 读取本人资料 — verified by BDD test
+- [ ] B13 [ADDED]: 买家资料维护 / 昵称超限 — verified by BDD test
 
 ## Quality
 - [x] Q1: 后端全量测试 `go test ./...` 绿（2026-09-01，见本次运行记录）
@@ -28,7 +28,7 @@ Status: APPROVED（人 gate 已过，2026-09-01；2026-09-02 由 devloop 启动�
 无新增（users、points_ledger 现有结构满足）。
 
 ## Follow-ups
-- FU-a1f4c902: `docs/api/openapi.yaml` 缺失（PRD §8-4），找回入库后 `make contract-check` 方可作为门禁。
+- FU-a1f4c902: 头像上传的像素上限与具体字节数上限待定。`docs/api/openapi.yaml` 已定格式白名单（JPEG/PNG/WebP）、`avatar_url.maxLength: 2048` 与 413 响应，但 `uploadAvatar` 的大小只写「平台上传上限」，未给数值；昵称已由 `User.nickname.maxLength: 64` 定死。
 
 ## Pass Rule
 ALL B* 断言全过 + ALL Q* + lint/test 绿。
