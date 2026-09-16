@@ -87,11 +87,11 @@ The system SHALL 向已登录买家展示正在发放且当前处于有效期内
 
 ### Requirement: 领取优惠券
 
-The system SHALL 让买家以 Idempotency-Key 领取一张券：受模板总量与每人限领双重约束，同键重复提交不重复发券，并发下不超发。
+The system SHALL 让买家以 Idempotency-Key（幂等键，客户端生成的防重标识）领取一张券：受模板总量与每人限领双重约束，同键重复提交不重复发券，并发下不超发。
 
 #### Scenario: 领取成功
 
-- **WHEN** 买家 `POST /api/v1/coupons/{templateId}/receive` 携带 Idempotency-Key（幂等键，超文本传输协议（HTTP）请求头，通用唯一标识符（UUID）文本，库上落为 `user_coupons.request_id`），模板可领且本人未达限领、模板未售罄
+- **WHEN** 买家 `POST /api/v1/coupons/{templateId}/receive` 携带 Idempotency-Key（超文本传输协议（HTTP）请求头，通用唯一标识符（UUID）文本，库上落为 `user_coupons.request_id`），模板可领且本人未达限领、模板未售罄
 - **THEN** 买家获得一张可用（`available`）券，模板已领取数加一
 
 #### Scenario: 达到每人限领
@@ -123,7 +123,7 @@ The system SHALL 让买家以 Idempotency-Key 领取一张券：受模板总量�
 
 ### Requirement: 券生命周期状态机
 
-The system SHALL 使券只沿以下路径流转：领取为可用（`available`）；被下单占用为锁定（`locked`）；订单支付成功为已核销（`used`）；订单取消或退款审批通过时，未过期回到可用、已过期置过期（`expired`）；未被占用的券过有效期由扫描置过期。除此之外不发生状态变化。
+The system SHALL 使券只沿以下路径流转：领取为可用（`available`）；被下单占用为锁定（`held`）；订单支付成功为已核销（`used`）；订单取消或退款审批通过时，未过期回到可用、已过期置过期（`expired`）；未被占用的券过有效期由扫描置过期。除此之外不发生状态变化。
 
 #### Scenario: 下单占用与释放后可复用
 
@@ -140,7 +140,7 @@ The system SHALL 使券只沿以下路径流转：领取为可用（`available`�
 
 - **WHEN** 周期扫描运行时券为 `available` 且模板 `valid_until` 已过
 - **THEN** 券置为 `expired`，不出现在可用券列表、下单不再接受
-- **AND** 处于 `locked` 或 `used` 的券不因扫描改状态
+- **AND** 处于 `held` 或 `used` 的券不因扫描改状态
 
 #### Scenario: 已过期券不再被任何路径复用
 
@@ -154,8 +154,8 @@ The system SHALL 向买家分页返回本人券，支持按状态过滤，响应
 
 #### Scenario: 按状态查券
 
-- **WHEN** 买家 `GET /api/v1/me/coupons` 带 `status` 参数（`available`、`locked`、`used`、`expired` 其一）
-- **THEN** 返回本人该状态的券，每条含券名、门槛、抵扣、`valid_until`、状态；`locked` 与 `used` 的券含占用它的订单号
+- **WHEN** 买家 `GET /api/v1/me/coupons` 带 `status` 参数（`available`、`held`、`used`、`expired` 其一）
+- **THEN** 返回本人该状态的券，每条含券名、门槛、抵扣、`valid_until`、状态；`held` 与 `used` 的券含占用它的订单号
 
 #### Scenario: 只返回本人的券
 
@@ -166,5 +166,5 @@ The system SHALL 向买家分页返回本人券，支持按状态过滤，响应
 ## Coverage Gaps
 
 - 模板列表"已核销数"的实时展示口径未定义，大数据量下是否需要调整统计方式待定。
-- 券模板数量、每人限领的字段级上限（如总量最大值）未定义，以入库后的 openapi 契约为准。
+- 券模板数量、每人限领的字段级上限（如总量最大值）无来源定义：`docs/api/openapi.yaml` 不含任何券路径，券端点只定义在 `docs/architecture/07-coupon-pay-lifecycle.md` §5。
 - 领券中心与我的券页面交互归 `docs/architecture/01-miniapp.md`，本 spec 不复述。

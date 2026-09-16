@@ -339,7 +339,7 @@ stateDiagram-v2
 - 状态迁移必须由服务端按允许路径校验，并在更新时带原状态条件。
 - 退款只允许从 `refund_requested` 审批；发货只允许从 `paid` 迁移。
 - 不存在买家主动取消、自动确认收货和物流单号状态。
-- 券状态机（`available`、`locked`、`used`、`expired`）见 [`07-coupon-pay-lifecycle.md`](07-coupon-pay-lifecycle.md)。
+- 券状态机（`available`、`held`、`used`、`expired`）见 [`07-coupon-pay-lifecycle.md`](07-coupon-pay-lifecycle.md)。
 
 ## 7. 安全与隐私
 

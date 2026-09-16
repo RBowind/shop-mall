@@ -23,19 +23,20 @@ Status: DRAFT（待独立 Evaluator 与人 gate）
 - [ ] B17 [ADDED]: 权限实时判定 / 管理令牌打买家域 — verified by BDD test
 - [ ] B18 [ADDED]: 权限实时判定 / 两域密钥配置相同 — verified by BDD test
 - [ ] B19 [ADDED]: 角色与管理员账号管理 / 创建与改授权 — verified by BDD test
-- [ ] B20 [ADDED]: 角色与管理员账号管理 / 删除被引用角色 — verified by BDD test
-- [ ] B21 [ADDED]: 角色与管理员账号管理 / 禁用最后一个超管 — verified by BDD test
-- [ ] B22 [ADDED]: 角色与管理员账号管理 / 只读查询角色与账号 — verified by BDD test
-- [ ] B23 [ADDED]: 角色与管理员账号管理 / 停用账号 — verified by BDD test
-- [ ] B24 [ADDED]: 角色与管理员账号管理 / 未知权限码 — verified by BDD test
-- [ ] B25 [ADDED]: 会员查询 / 查询买家 — verified by BDD test
-- [ ] B26 [ADDED]: 会员查询 / 运营查询会员 — verified by BDD test
-- [ ] B27 [ADDED]: 审计日志留存与查询 / 成功操作留痕 — verified by BDD test
-- [ ] B28 [ADDED]: 审计日志留存与查询 / 失败尝试同样留痕 — verified by BDD test
-- [ ] B29 [ADDED]: 审计日志留存与查询 / 查询审计 — verified by BDD test
-- [ ] B30 [ADDED]: 审计日志留存与查询 / 敏感信息不进日志 — verified by BDD test
-- [ ] B31 [MODIFIED]: 登出与改密挂 `admin:self` 权限码 / 缺 admin:self 的账号 — verified by BDD test
-- [ ] B32 [MODIFIED]: 登出与改密挂 `admin:self` 权限码 / 默认角色不受影响 — verified by BDD test
+- [ ] B20 [ADDED]: 角色与管理员账号管理 / 创建重名角色 — verified by BDD test
+- [ ] B21 [ADDED]: 角色与管理员账号管理 / 删除被引用角色 — verified by BDD test
+- [ ] B22 [ADDED]: 角色与管理员账号管理 / 禁用最后一个超管 — verified by BDD test
+- [ ] B23 [ADDED]: 角色与管理员账号管理 / 只读查询角色与账号 — verified by BDD test
+- [ ] B24 [ADDED]: 角色与管理员账号管理 / 停用账号 — verified by BDD test
+- [ ] B25 [ADDED]: 角色与管理员账号管理 / 未知权限码 — verified by BDD test
+- [ ] B26 [ADDED]: 会员查询 / 查询买家 — verified by BDD test
+- [ ] B27 [ADDED]: 会员查询 / 运营查询会员 — verified by BDD test
+- [ ] B28 [ADDED]: 审计日志留存与查询 / 成功操作留痕 — verified by BDD test
+- [ ] B29 [ADDED]: 审计日志留存与查询 / 失败尝试同样留痕 — verified by BDD test
+- [ ] B30 [ADDED]: 审计日志留存与查询 / 查询审计 — verified by BDD test
+- [ ] B31 [ADDED]: 审计日志留存与查询 / 敏感信息不进日志 — verified by BDD test
+- [ ] B32 [MODIFIED]: 登出与改密挂 `admin:self` 权限码 / 缺 admin:self 的账号 — verified by BDD test
+- [ ] B33 [MODIFIED]: 登出与改密挂 `admin:self` 权限码 / 默认角色不受影响 — verified by BDD test
 
 ## Quality
 - [ ] Q1: 后端全量测试 `go test ./...` 绿
@@ -49,9 +50,7 @@ Status: DRAFT（待独立 Evaluator 与人 gate）
 
 ## Follow-ups
 - FU-1c6f9b3e（沿用 techspec）: 审计摘要与列表脱敏格式待定。
-- FU-6b8f2d49: CSRF/Origin 拒绝的具体响应码（401 或 403）待定。
-- FU-2c5a7e91: 创建重名角色的冲突响应口径待定。
-- FU-8f1d3b64: 错误响应统一回传 trace_id 的归属 spec 待确认（全局接口规范）。
+- FU-8f1d3b64: 错误响应统一回传 trace_id 的归属 spec 待确认（属全局接口规范，techspec §5 统一响应）。
 - FU-5a9c7e36: 角色/管理员写操作前端未接线（PRD §8-2，ADMIN_TARGET 既定未完成项）。
 
 ## Pass Rule

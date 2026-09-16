@@ -31,11 +31,13 @@ Status: DRAFT（待独立 Evaluator 与人 gate）
 - 新增 `pay_expire_at`、`discount_points`、`pay_points`、`cancelled_at`；`paid_at` 改为可空。
 
 ### products
-- 新增 `locked_stock`；`stock` 表示可售库存，不含待支付订单预占量。
+- 新增 `hold_stock`；`stock` 表示可售库存，不含待支付订单预占量。
 
 ## Follow-ups
-- 超时取消与过期券处理的触发频率未定义，但必须支持到期后有限时间内处理及失败后继续处理。
-- 支付竞态失败与已支付状态是否使用不同业务错误码待定，当前均返回 409。
+- FU-2a91c7d5: 超时取消与过期券处理的触发频率未定义，但必须支持到期后有限时间内处理及失败后继续处理。
+- FU-5b73e0a9: 支付竞态失败与已支付状态是否使用不同业务错误码待定，当前均返回 409。
+- FU-4f9c21ab: 生命周期任务每轮取批的批量大小（超时待支付订单与过期可用券各取多少行）定默认值时与 `LIFECYCLE_SCAN_INTERVAL_SECONDS` 一并冻结。
+- FU-2e91a76c: 支付时限默认值 15 分钟的覆盖范围明确到业务服务水平协议（SLA）层，若未来需对外公示需补产品口径文件。
 
 ## Pass Rule
 ALL Behavioral Changes + ALL Quality + lint/test 绿。

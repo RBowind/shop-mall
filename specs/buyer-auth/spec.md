@@ -24,7 +24,7 @@ The system SHALL 用一次性登录凭证 code 换取微信用户标识 openid�
 
 - **WHEN** code 请求登录接口
 - **AND** code2Session 失败（code 已被消费、过期或微信服务异常）
-- **THEN** 响应返回 2002 认证业务错误码
+- **THEN** 响应返回 2002 业务错误码（微信侧换取失败）
 - **AND** 不创建用户、不签发令牌
 - **AND** 客户端重新 `wx.login()` 取新 code 再试，不重复消费旧 code
 
@@ -46,7 +46,7 @@ The system SHALL 对新买家在首次登录时一次性赠送初始积分，赠
 #### Scenario: 新用户首登
 
 - **WHEN** 登录请求的 openid 在系统中不存在，且部署配置的赠送积分大于 0
-- **THEN** 账号创建、余额增加、一条 `type=signup_bonus` 的积分流水在以原子结果完成
+- **THEN** 账号创建、余额增加与一条 `type=signup_bonus` 的积分流水同时成立，或全部不成立
 - **AND** 流水记录赠送后的余额
 
 #### Scenario: 老用户重复登录
@@ -103,5 +103,5 @@ The system SHALL 允许已登录买家修改昵称与头像，修改后全局生
 
 ## Coverage Gaps
 
-- 昵称的具体长度与字符集上限以 openapi 契约为准（当前 `docs/api/openapi.yaml` 缺失，见 follow-ups），本 spec 只约束"服务端强制限制"这一行为。
+- 昵称长度的字段级上限已由 `docs/api/openapi.yaml` 的 `User.nickname.maxLength: 64` 定死；允许的字符集规则未定义，本 spec 只约束"服务端强制限制"这一行为。
 - 开发环境游客 AppID 模拟登录属开发工具便利，不列为行为契约（端内与部署口径见 `docs/architecture/`）。

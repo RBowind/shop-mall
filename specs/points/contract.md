@@ -30,7 +30,6 @@ Status: DRAFT（待独立 Evaluator 与人 gate）
 ## Follow-ups
 - FU-8e2a5d7c（沿用 techspec）: 积分对账任务的触发周期、告警形态、冻结口径需先定义再实现。
 - FU-9d3e6a28: 超管调分后同页查流水核对的小程序/后台前端未接线（PRD §8-2，ADMIN_TARGET 既定未完成项）。
-- FU-3d7b8c1a（沿用 techspec）: `GET /api/admin/v1/users`、`GET /api/admin/v1/audit-logs` 补入 openapi.yaml（前提同为 FU-a1f4c902）。
 
 ## Pass Rule
 ALL B* 断言全过 + ALL Q* + lint/test 绿。

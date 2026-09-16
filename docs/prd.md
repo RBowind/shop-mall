@@ -1,6 +1,6 @@
 # Shop-Mall PRD v1
 
-> **术语映射**：本文采用 `docs/CONTEXT.md` 的口径（`hold` / `hold_stock` / `lock`）。如出现近义口语（待发货 / 预占 / 锁定），按该文件做语义映射。
+> **术语映射**：本文采用 `docs/CONTEXT.md` 的口径（`hold` / `hold_stock` / `lock`）。如出现近义口语（待发货 / 预占 / 锁定库存），按该文件做语义映射。
 >
 > **数值引用**：本文 AC 中凡涉及阈值 / 时限 / 上限均不重复数字，统一引用附录 A「常量与阈值」中的配置项原名。
 
@@ -133,7 +133,7 @@ shop-mall 是一个积分商城教学项目，覆盖买家小程序、管理后�
 **US-401-b 预占库存与券**
 - **Description**：作为买家，我想下单时库存与券被预占，避免超卖与券被他人抢用。
 - **Acceptance Criteria**：
-  - [ ] 同事务内：`products.hold_stock += 数量`，`user_coupons.status = locked` 并绑定订单
+  - [ ] 同事务内：`products.hold_stock += 数量`，`user_coupons.status = held` 并绑定订单
   - [ ] 预占动作有锁顺序保护（见 `docs/CONTEXT.md` lock 与架构 `02-backend.md`）
   - [ ] 任一商品可售数不足返回 422 并指出 product_id
   - [ ] 不写积分流水（流水留给支付）
@@ -188,7 +188,7 @@ shop-mall 是一个积分商城教学项目，覆盖买家小程序、管理后�
 - **Acceptance Criteria**：
   - [ ] 后台 ticker 周期扫描（参见 `appendix.constants#ORDER_PAY_TIMEOUT_MINUTES`）
   - [ ] 超时订单状态置为 `cancelled` 并记 `cancelled_at`
-  - [ ] 同事务内：`products.hold_stock -= 数量`，券未过期时从 `locked` 恢复为 `available`，已过期则置为 `expired`
+  - [ ] 同事务内：`products.hold_stock -= 数量`，券未过期时从 `held` 恢复为 `available`，已过期则置为 `expired`
   - [ ] `cancelled` 订单不可发起退款（前端隐藏入口，后端 409）
   - [ ] 后台任务退出可停止（ticker + ctx）
   - [ ] 行为契约见 `specs/order-payment/spec.md`

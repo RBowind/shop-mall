@@ -121,7 +121,7 @@ The system SHALL 让持 `product:read` / `product:write` 的管理员查询、�
 
 ### Requirement: 商品图上传
 
-The system SHALL 只接受 JPEG、PNG、WebP 图片；管理后台选择超出 2MB 的图片时先自动压缩，再上传到单文件不超过 2MB 的接口；上传成功的图片以服务端 object key（文件标识）返回供商品引用。
+The system SHALL 只接受 JPEG、PNG、WebP 图片，单文件不超过 2MB；上传成功的图片以服务端 object key（文件标识）返回供商品引用。
 
 #### Scenario: 合法上传
 
@@ -134,20 +134,19 @@ The system SHALL 只接受 JPEG、PNG、WebP 图片；管理后台选择超出 2
 - **WHEN** 上传的文件实际格式不是 JPEG/PNG/WebP（按文件内容与解码判定，不看扩展名）
 - **THEN** 拒绝，不存储
 
-#### Scenario: 管理后台自动压缩超限图片
+#### Scenario: 上传超限图片
 
-- **WHEN** 管理员在管理后台选择可解码且超过 2MB 的 JPEG、PNG 或 WebP 图片
-- **THEN** 管理后台在发起上传请求前自动压缩图片，最终上传请求不超过 2MB，并在上传成功后返回图片地址
+- **WHEN** 客户端向 `POST /api/admin/v1/images` 上传超过 2MB 的文件
+- **THEN** 服务端拒绝存储并返回 413
 
-#### Scenario: 直接接口上传超限图片
+#### Scenario: 图集超过上限
 
-- **WHEN** 客户端直接向 `POST /api/admin/v1/images` 上传超过 2MB 的文件
-- **THEN** 服务端拒绝存储并返回 413，作为绕过管理后台压缩的边界保护
+- **WHEN** 商品写入请求的 `images` 数组超过 9 个元素
+- **THEN** 响应 422，商品图集不变
 
 
 ## Coverage Gaps
 
-- 商品图集最多 9 张、第一张为主图是产品规则；超出 9 张时服务端拒绝还是截断未定义。
 - 产品需求文档（PRD）F-201"推荐商品"双列网格无服务端契约出处（techspec 无推荐端点），取数口径转人。
 - 产品需求文档（PRD）F-603"图片支持上下架"在数据模型无落点（商品只有整品级状态），按字面做独立图片状态还是删该条目，转人裁决。
 - 商品目录键的增删属产品级变更，走变更提案，不在本 spec 范围。

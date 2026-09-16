@@ -22,8 +22,8 @@ Status: DRAFT（待独立 Evaluator 与人 gate）
 - [ ] B16 [ADDED]: 管理端商品维护 / 无写权限 — verified by BDD test
 - [ ] B17 [ADDED]: 商品图上传 / 合法上传 — verified by BDD test
 - [ ] B18 [ADDED]: 商品图上传 / 非图片文件 — verified by BDD test
-- [ ] B19 [MODIFIED]: 商品图上传 / 直接接口上传超限图片 — verified by BDD test
-- [ ] B20 [MODIFIED]: 商品图上传 / 管理后台自动压缩超限图片 — verified by BDD test
+- [ ] B19 [MODIFIED]: 商品图上传 / 上传超限图片 — verified by BDD test
+- [ ] B20 [MODIFIED]: 商品图上传 / 图集超过上限 — verified by BDD test
 
 ## Quality
 - [ ] Q1: 后端全量测试 `go test ./...` 绿
@@ -35,7 +35,6 @@ Status: DRAFT（待独立 Evaluator 与人 gate）
 无新增（products 现有结构满足）。
 
 ## Follow-ups
-- FU-b3e7d941: 图集超 9 张时服务端拒绝还是截断，待定。
 - FU-c8a2f516: PRD F-603"图片支持上下架"无数据模型落点，按字面实现还是删条目，待裁决。
 - FU-d41b9e73: F-201"推荐商品"取数口径（techspec 无推荐端点），待产品定义。
 

@@ -5,7 +5,7 @@
 ## Elaborates
 
 - techspec: `docs/tech-specs/shop-mall-tech-spec.md` §2、§4；`docs/tech-specs/flows.md` 第 4 节；`docs/tech-specs/interfaces.md` 管理员域端点
-- techspec: `docs/architecture/07-coupon-pay-lifecycle.md` §4（订单状态机新增 `pending_payment`、`cancelled` 两态，本节枚举补全的依据）
+- techspec: `docs/architecture/07-coupon-pay-lifecycle.md` §4（订单状态机与超时取消）
 
 ## Requirements
 

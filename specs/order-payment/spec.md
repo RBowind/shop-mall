@@ -4,8 +4,13 @@
 
 ## Elaborates
 
-- techspec: `docs/architecture/07-coupon-pay-lifecycle.md` §2、§4；`docs/tech-specs/flows.md` 全局事务规则
-- 关联 capability: 下单产出待支付订单见 `specs/checkout/spec.md`，订单终态后的发货收货见 `specs/fulfillment/spec.md`
+- techspec: `docs/architecture/07-coupon-pay-lifecycle.md` §2、§4；`docs/tech-specs/flows.md` 全局事务与并发规则
+
+## 关联 capability
+
+- 下单产出待支付订单见 `specs/checkout/spec.md`
+- 订单终态后的发货收货见 `specs/fulfillment/spec.md`
+
 ## Requirements
 
 ### Requirement: 确认支付
@@ -46,7 +51,7 @@ The system SHALL 在下单成功时为订单固化支付截止时间并随订单
 #### Scenario: 时限随订单生成
 
 - **WHEN** 下单成功
-- **THEN** 订单响应与详情包含支付截止时间，取值为下单时刻加支付时限（业务 SLA 默认 15 分钟，由 `ORDER_PAY_TIMEOUT_MINUTES` 配置项设定）
+- **THEN** 订单响应与详情包含支付截止时间，取值为下单时刻加支付时限（业务服务水平协议（SLA）默认 15 分钟，由 `ORDER_PAY_TIMEOUT_MINUTES` 配置项设定）
 
 #### Scenario: 取消处理前仍可支付
 
@@ -98,6 +103,6 @@ The system SHALL 由后台周期任务把已过有效期且未被占用的券置
 ## Coverage Gaps
 
 - 系统不提供买家主动取消待支付订单的入口（无 `DELETE` 或取消类端点）：买家要么在支付时限内确认支付，要么等待后台任务自动取消；本 spec 范围内不新增此类接口。
-- 超时订单和过期可用券都必须被系统自动处理；具体触发频率未定义，spec 只约束"到期后有限轮内必被处理、失败可继续处理"。
+- 超时订单与过期可用券的处理触发频率未定义，spec 只约束"到期后有限轮内必被处理、失败可继续处理"。
 - 取消与核销对买家通知（站内展示或订阅消息）未定义：产品需求文档（PRD）明确本期不做消息通知，取消结果以订单列表状态为准。
 - 支付接口是否需要独立错误码细分（超时竞态 vs 已支付）未定义，两者当前都归 409 状态迁移非法。

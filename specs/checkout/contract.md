@@ -40,6 +40,7 @@ Status: DRAFT（待独立 Evaluator 与人 gate）
 
 ## Follow-ups
 - FU-f2c8b347: 删除默认地址后允许暂无默认还是自动顶替，待产品口径。
+- FU-6d2a90f3: `request_hash` 中 `coupon_id` 的规范化编码（未选券与选券两种输入的字节级编码）发布前冻结，沿用主档"编码冻结"条款。
 
 ## Pass Rule
 ALL B* 断言全过 + ALL Q* + lint/test 绿。

@@ -5,7 +5,7 @@
 ## Elaborates
 
 - techspec: `docs/tech-specs/shop-mall-tech-spec.md` §2、§3、§4；`docs/tech-specs/flows.md` 第 3 节；`docs/tech-specs/interfaces.md` 买家域与管理员域端点
-- techspec: `docs/architecture/07-coupon-pay-lifecycle.md` §4 主流程 5（退款金额改按实付、新增退券副作用，本节修订的依据）
+- techspec: `docs/architecture/07-coupon-pay-lifecycle.md` §4 主流程 5（退款审批通过）
 
 ## Requirements
 
@@ -15,8 +15,13 @@ The system SHALL 仅允许买家对本人 paid 订单发起退款申请；已发
 
 #### Scenario: 申请成功
 
-- **WHEN** 买家对本人 paid 订单请求 `POST /api/v1/orders/{orderId}/refund` 并携带退款原因
+- **WHEN** 买家对本人 paid 订单请求 `POST /api/v1/orders/{orderId}/refund` 并携带退款原因（1 到 255 字符）
 - **THEN** 订单状态变 refund_requested，退款原因与申请时间留存且买家可见
+
+#### Scenario: 缺少退款原因
+
+- **WHEN** 申请退款请求未携带原因或原因为空串
+- **THEN** 响应 1001 参数错误，订单状态不变
 
 #### Scenario: 已发货订单申请
 
@@ -36,7 +41,7 @@ The system SHALL 仅允许买家对本人 paid 订单发起退款申请；已发
 
 ### Requirement: 审批通过退还积分并回补库存
 
-The system SHALL 在审批通过时于以原子结果完成退实付积分、回补可售库存、处置订单占用的券与状态迁移；退款金额由服务端按订单快照计算（实付=原价-券抵扣），审批接口不接收金额。
+The system SHALL 在审批通过时以原子结果完成退实付积分、回补可售库存、处置订单占用的券与状态迁移；退款金额由服务端按订单快照计算（实付=原价-券抵扣），审批接口不接收金额。
 
 #### Scenario: 审批通过
 
@@ -57,7 +62,6 @@ The system SHALL 在审批通过时于以原子结果完成退实付积分、回
 
 - **WHEN** 管理员角色不含 `refund:approve`（如运营）
 - **THEN** 响应 403，订单不变，且一条失败审计记录该尝试
-
 
 
 ### Requirement: 驳回仅回退状态
@@ -103,5 +107,4 @@ The system SHALL 向持 `refund:read` 的管理员提供退款申请中与已退
 
 ## Coverage Gaps
 
-- 买家端退款原因在小程序为必选（不想要了/拍错重下/其他+自定义），服务端是否强制非空及长度上限未定义；暂按"服务端接收并留存原因文本"约束。
-- "申请时间买家可见"已定为新增 `orders.refund_requested_at` 列，落点见 `contract.md` Schema Changes。
+- 买家端退款原因的取值集合由小程序约束（不想要了/拍错重下/其他+自定义），服务端只校验非空与长度，不校验取值是否在该集合内。

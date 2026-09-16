@@ -28,7 +28,7 @@ Status: DRAFT（待独立 Evaluator 与人 gate）
 无新增（users、points_ledger 现有结构满足）。
 
 ## Follow-ups
-- FU-a1f4c902: `docs/api/openapi.yaml` 缺失（PRD §8-4），找回入库后 `make contract-check` 方可作为门禁。
+- FU-a1f4c902: 头像上传的像素上限与具体字节数上限待定。`docs/api/openapi.yaml` 已定格式白名单（JPEG/PNG/WebP）、`avatar_url.maxLength: 2048` 与 413 响应，但 `uploadAvatar` 的大小只写「平台上传上限」，未给数值；昵称已由 `User.nickname.maxLength: 64` 定死。
 
 ## Pass Rule
 ALL B* 断言全过 + ALL Q* + lint/test 绿。

@@ -5,7 +5,7 @@
 ## Elaborates
 
 - techspec: `docs/tech-specs/shop-mall-tech-spec.md` §2、§3；`docs/tech-specs/flows.md` 第 6 节；`docs/tech-specs/data-model.md` 账务域
-- techspec: `docs/architecture/07-coupon-pay-lifecycle.md` §3、§4（`order_pay` 事件写入时机移至支付确认）
+- techspec: `docs/architecture/07-coupon-pay-lifecycle.md` §3、§4（订单支付确认）
 
 ## Requirements
 
@@ -45,7 +45,7 @@ The system SHALL 让持 `points:adjust` 的超管以有符号增减调整买家�
 
 #### Scenario: 调整成功
 
-- **WHEN** 超管请求 `POST /api/admin/v1/points/adjust`（携带 Idempotency-Key、有符号增减量、备注）
+- **WHEN** 超管请求 `POST /api/admin/v1/points/adjust`（携带 Idempotency-Key（幂等键，客户端生成的防重标识）、有符号增减量、备注）
 - **THEN** 目标买家余额按增减量变化，写一条 `admin_adjust` 流水，留痕操作管理员与备注
 - **AND** 成功结果同时包含一条成功审计记录
 
@@ -78,7 +78,7 @@ The system SHALL 让持 `points:adjust` 的超管以有符号增减调整买家�
 
 ### Requirement: 不提供直改余额通道
 
-The system SHALL 不开放任何绕过流水直接设定余额的接口；积分变动只能由注册赠送、下单、退款审批、管理员调整四类事件产生。
+The system SHALL 不开放任何绕过流水直接设定余额的接口；积分变动只能由注册赠送、订单支付确认、退款审批、管理员调整四类事件产生。
 
 #### Scenario: 直接设定余额
 
@@ -86,15 +86,14 @@ The system SHALL 不开放任何绕过流水直接设定余额的接口；积分
 - **THEN** 只能提交带增减量与备注的调整请求；系统中不存在设定绝对余额的接口
 
 
-
 ### Requirement: 余额与流水保持一致
 
-The system SHALL 保证每一次积分余额变动都对应一条流水，二者必须同时变化或同时不变化；下单扣减事件改由订单支付确认时产生，下单本身不再触发余额变动。
+The system SHALL 保证每一次积分余额变动都对应一条流水，二者同时变化或同时不变化；下单本身不触发余额变动，扣减发生在订单支付确认时。
 
 #### Scenario: 任一积分变动
 
 - **WHEN** 注册赠送、订单确认支付、退款审批回分或管理员调整任一事件提交成功
-- **THEN** 买家余额与 `points_ledger` 流水同时变化，流水记录的变动后余额与事务提交后的账户余额一致
+- **THEN** 买家余额与 `points_ledger` 流水同时变化，流水记录的变动后余额与账户余额一致
 
 
 ### Requirement: 余额恒不为负
@@ -104,7 +103,7 @@ The system SHALL 在任何操作下不允许余额扣成负数；扣减超出余
 #### Scenario: 扣成负数
 
 - **WHEN** 订单确认支付的扣减额或管理员调减额大于当前余额
-- **THEN** 请求被拒（确认支付归 2002余额不足，调整返回业务错误），余额与流水均不变
+- **THEN** 请求被拒（确认支付返回 2002 业务错误码（余额不足）；调整返回业务错误），余额与流水均不变
 - **AND** 确认支付被拒时订单保持待支付、库存与券的预占不变，行为按 `specs/order-payment/spec.md` 约束
 - **AND** 管理员调减被拒时尽力补记一条失败审计，补记本身失败不改变对调用方的答复
 
