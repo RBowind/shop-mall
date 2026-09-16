@@ -1,6 +1,6 @@
 # Sprint Contract: fulfillment
 Source: specs/fulfillment/spec.md
-Status: DRAFT（待独立 Evaluator 与人 gate）
+Status: APPROVED
 
 ## Behavioral Changes
 

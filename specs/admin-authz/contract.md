@@ -1,6 +1,6 @@
 # Sprint Contract: admin-authz
 Source: specs/admin-authz/spec.md
-Status: DRAFT（待独立 Evaluator 与人 gate）
+Status: APPROVED
 
 ## Behavioral Changes
 

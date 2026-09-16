@@ -48,7 +48,12 @@ const RE_Q_REF = /\bQ(\d+)\b/g;
 const RE_FU_DEF = /^-\s*FU-([0-9a-f]{8})\b/;
 const RE_FU_REF = /\bFU-([0-9a-f]{8})\b/g;
 
-const SPEC_SECTIONS = new Set(["Elaborates", "Requirements", "Coverage Gaps"]);
+const SPEC_SECTIONS = new Set([
+  "Elaborates",
+  "Related Capabilities",
+  "Requirements",
+  "Coverage Gaps",
+]);
 // 契约标签形如「Requirement 名 / Scenario 名」，Scenario 名后可挂一段括号注记。
 const stripNote = (s) => s.replace(/（[^（）]*）\s*$/, "").trim();
 

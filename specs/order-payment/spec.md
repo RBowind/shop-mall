@@ -6,6 +6,12 @@
 
 - techspec: `docs/architecture/07-coupon-pay-lifecycle.md` §2、§4；`docs/tech-specs/flows.md` 全局事务与并发规则
 
+## Related Capabilities
+
+- `specs/checkout/spec.md` — 下单产出待支付订单，本 spec 从确认支付接起
+- `specs/fulfillment/spec.md` — 订单终态之后的发货与收货
+- `specs/coupon/spec.md` — 券的状态转移路径以对方状态机为唯一出处
+
 ## Requirements
 
 ### Requirement: 确认支付
