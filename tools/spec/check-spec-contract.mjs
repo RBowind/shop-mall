@@ -16,7 +16,9 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const specsDir = join(root, "specs");
-const testsDir = join(root, "backend", "tests");
+// 回链可能落在后端，也可能落在前端——contract 混着两侧的行为。三个根都扫，
+// 归属靠 `<capability>_spec_test.<ext>` 的命名约定判定。
+const testRoots = ["backend/tests", "miniapp/test", "admin/test"].map((d) => join(root, d));
 
 const failures = [];
 const warnings = [];
@@ -57,9 +59,10 @@ const SPEC_SECTIONS = new Set([
 // 契约标签形如「Requirement 名 / Scenario 名」，Scenario 名后可挂一段括号注记。
 const stripNote = (s) => s.replace(/（[^（）]*）\s*$/, "").trim();
 
-// 一个 capability 名在测试文件名里的写法：连字符与下划线互认。
+// 一个 capability 名在 spec 用例文件名里的写法：连字符与下划线互认，扩展名不限。
+// 后端是 `cart_spec_test.go`，前端是 `cart_spec_test.mjs`，形状一致。
 const capPattern = (cap) =>
-  new RegExp(`(^|/)${cap.replace(/-/g, "[_-]?")}_spec_test\\.go$`);
+  new RegExp(`(^|/)${cap.replace(/-/g, "[_-]?")}_spec_test\\.[a-z]+$`);
 
 function parseSpec(path) {
   const src = lines(path);
@@ -150,7 +153,7 @@ const specFiles = existsSync(specsDir)
   : [];
 
 // 测试侧回链：按 capability 归属，因为 B 编号在每个 capability 内各自从 1 起。
-const allTestFiles = walk(testsDir).filter((p) => p.endsWith(".go"));
+const allTestFiles = testRoots.flatMap((d) => walk(d));
 const anchorsByCap = new Map();
 const uncoveredByCap = [];
 

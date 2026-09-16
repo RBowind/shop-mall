@@ -12,7 +12,7 @@ Status: APPROVED
 - [x] B6 [ADDED]: 购物车行内管理 / 数量非法
 - [x] B7 [ADDED]: 不可购标记 / 管理员下架后
 - [x] B8 [ADDED]: 不可购标记 / 库存不足
-- [ ] B9 [ADDED]: 不可购标记 / 客户端拦截结算
+- [x] B9 [ADDED]: 不可购标记 / 客户端拦截结算
 
 ## Quality
 - [x] Q1: 后端全量测试 `go test ./...` 绿 — 2026-09-02 devloop 收尾兜底：26 包全 ok；tests/e2e ok 11.6s、tests/security ok 8.1s

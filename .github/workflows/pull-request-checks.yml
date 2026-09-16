@@ -62,11 +62,14 @@ jobs:
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
             # spec 与 contract 的结构一致性归 contract job 承载（它已是 required check，
-            # 新开 job 得先改分支保护才拦得住）。读 backend/tests/** 是因为要核回链。
+            # 新开 job 得先改分支保护才拦得住）。读三个测试根是因为要核回链——
+            # contract 混着前后端行为，回链可能落在任一侧。
             spec:
               - 'specs/**'
               - 'tools/spec/**'
               - 'backend/tests/**'
+              - 'miniapp/test/**'
+              - 'admin/test/**'
             backend:
               - 'backend/**'
             frontend:

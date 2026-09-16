@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "max dev",
     "build": "tsc --noEmit && max build && node scripts/patch-html.mjs",
-    "test": "node --experimental-strip-types --no-warnings --test test/*.test.mjs",
+    "test": "node --experimental-strip-types --no-warnings --test \"test/*.test.mjs\" \"test/*_spec_test.mjs\"",
     "test:e2e": "playwright test"
   },
   "dependencies": {
