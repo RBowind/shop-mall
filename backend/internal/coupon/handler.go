@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -94,6 +95,10 @@ func (h *Handler) AdminCreateTemplate(c *gin.Context) {
 // fields submitted alongside the status are dropped by the decoder rather than
 // rejected — a modification request is accepted for its status change, and the
 // rules simply do not take effect.
+//
+// The actor is resolved from the verified admin JWT and reaches the service, so
+// the switch's success audit row names whoever ran this request (not whoever
+// created the template).
 func (h *Handler) AdminUpdateTemplateStatus(c *gin.Context) {
 	id, ok := parseTemplateID(c.Param("templateId"))
 	if !ok {
@@ -110,7 +115,12 @@ func (h *Handler) AdminUpdateTemplateStatus(c *gin.Context) {
 		platformhttp.Error(c, http.StatusBadRequest, platformhttp.CodeBadRequest, "invalid coupon template status")
 		return
 	}
-	template, err := h.service.SetTemplateStatus(c.Request.Context(), id, status)
+	actor, ok := h.resolveActor(c)
+	if !ok {
+		platformhttp.Error(c, http.StatusUnauthorized, platformhttp.CodeUnauthorized, "missing administrator identity")
+		return
+	}
+	template, err := h.service.SetTemplateStatus(c.Request.Context(), actor, id, status)
 	if err != nil {
 		if errors.Is(err, ErrTemplateNotFound) {
 			platformhttp.Error(c, http.StatusNotFound, platformhttp.CodeNotFound, "coupon template not found")
@@ -126,6 +136,82 @@ func (h *Handler) AdminUpdateTemplateStatus(c *gin.Context) {
 		return
 	}
 	platformhttp.Success(c, http.StatusOK, toTemplateJSON(template))
+}
+
+// AdminListTemplates handles GET /api/admin/v1/coupon-templates. Requires
+// coupon:read. Every template is returned — a halted one included — newest
+// first and paged, each row carrying the rule set, the issuance counter and the
+// redeemed-coupon count (specs/coupon/spec.md 模板列表).
+func (h *Handler) AdminListTemplates(c *gin.Context) {
+	page, pageSize, err := parsePaging(c)
+	if err != nil {
+		platformhttp.Error(c, http.StatusBadRequest, platformhttp.CodeBadRequest, err.Error())
+		return
+	}
+	items, total, err := h.service.ListTemplates(c.Request.Context(), page, pageSize)
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	list := make([]templateListRowJSON, 0, len(items))
+	for _, item := range items {
+		list = append(list, templateListRowJSON{
+			templateJSON: toTemplateJSON(item.TemplateView),
+			UsedCount:    item.UsedCount,
+		})
+	}
+	platformhttp.Success(c, http.StatusOK, templateListData{
+		List:     list,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+	})
+}
+
+// templateListData is the paginated list envelope the admin list endpoints of
+// this repo return (productListData, userListResponse, auditLogListResponse):
+// { list, total, page, page_size }.
+type templateListData struct {
+	List     []templateListRowJSON `json:"list"`
+	Total    int64                 `json:"total"`
+	Page     int                   `json:"page"`
+	PageSize int                   `json:"page_size"`
+}
+
+// templateListRowJSON is one row of the template list: the same administrator
+// projection the create and status-switch responses return, plus the redeemed
+// count. Embedding rather than redeclaring the ten template keys keeps one
+// shape for the resource across all three endpoints.
+type templateListRowJSON struct {
+	templateJSON
+	// UsedCount is 已核销数, the only derived column on the row, so "which
+	// field carries the redeemed count" has exactly one answer.
+	UsedCount int64 `json:"used_count"`
+}
+
+// parsePaging reads the paging parameters the admin list endpoints of this repo
+// accept — page (min 1, default 1) and page_size (1..100, default 20; the
+// definitions mirror internal/product/handler.go parsePaging) — so the coupon
+// template list shares the product / order / member / audit log paging surface
+// instead of inventing its own parameter names.
+func parsePaging(c *gin.Context) (int, int, error) {
+	page := 1
+	pageSize := defaultPageSize
+	if raw := c.Query("page"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 1 {
+			return 0, 0, errors.New("invalid page")
+		}
+		page = parsed
+	}
+	if raw := c.Query("page_size"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 1 || parsed > maxPageSize {
+			return 0, 0, errors.New("invalid page_size")
+		}
+		pageSize = parsed
+	}
+	return page, pageSize, nil
 }
 
 // templateStatusRequest is the status-switch payload. This struct is the whole
