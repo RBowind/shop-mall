@@ -48,6 +48,7 @@ import (
 	apprefund "shop-mall/backend/internal/application/refund"
 	"shop-mall/backend/internal/cart"
 	"shop-mall/backend/internal/config"
+	"shop-mall/backend/internal/coupon"
 	"shop-mall/backend/internal/order"
 	"shop-mall/backend/internal/payment"
 	"shop-mall/backend/internal/platform/database"
@@ -249,7 +250,13 @@ func ResetDB(ctx context.Context, db *gorm.DB) error {
 		`ALTER TABLE audit_logs DISABLE TRIGGER audit_logs_append_only_truncate`,
 		`DELETE FROM order_items`,
 		`DELETE FROM points_ledger`,
+		// user_coupons holds FKs to users, coupon_templates and orders (0006),
+		// so it is cleared before its parents: orders below and coupon_templates
+		// right after. Neither user_coupons.order_id nor .template_id has ON
+		// DELETE CASCADE, so deleting a parent first would fail the reset.
+		`DELETE FROM user_coupons`,
 		`DELETE FROM orders`,
+		`DELETE FROM coupon_templates`,
 		`DELETE FROM cart_items`,
 		`DELETE FROM user_addresses`,
 		`DELETE FROM products`,
@@ -347,6 +354,16 @@ func NewHarness(t *testing.T, db *gorm.DB) *Harness {
 	if err != nil {
 		t.Fatalf("product handler: %v", err)
 	}
+
+	couponService, err := coupon.NewService(coupon.ServiceDeps{DB: db})
+	if err != nil {
+		t.Fatalf("coupon service: %v", err)
+	}
+	couponHandler, err := coupon.NewHandler(coupon.HandlerDeps{Service: couponService, AdminViewer: adminService, Logger: logger})
+	if err != nil {
+		t.Fatalf("coupon handler: %v", err)
+	}
+	couponDeniedAuditor := coupon.NewPermissionDeniedAuditor(db, adminService, logger)
 
 	addressService, err := user.NewAddressService(user.AddressServiceDeps{DB: db})
 	if err != nil {
@@ -482,6 +499,11 @@ func NewHarness(t *testing.T, db *gorm.DB) *Harness {
 			product.RegisterAdminRoutes(group, product.AdminRouteDeps{
 				Handler: productHandler, Signer: adminSigner, Cookie: cfg.AdminCookie,
 				Now: nowUTC, PermissionResolver: adminService, AdminStateResolver: adminService,
+			})
+			coupon.RegisterAdminRoutes(group, coupon.AdminRouteDeps{
+				Handler: couponHandler, Signer: adminSigner, Cookie: cfg.AdminCookie,
+				Now: nowUTC, PermissionResolver: adminService, AdminStateResolver: adminService,
+				DeniedAuditor: couponDeniedAuditor,
 			})
 			admin.RegisterImageRoutes(group, admin.ImageRouteDeps{
 				Handler: imageHandler, Signer: adminSigner, Cookie: cfg.AdminCookie,
