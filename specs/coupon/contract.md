@@ -4,10 +4,14 @@ Status: APPROVED
 
 ## Behavioral Changes
 
-- [ ] B1 [ADDED]: 创建券模板 / 创建成功
-- [ ] B2 [ADDED]: 创建券模板 / 规则非法
-- [ ] B3 [ADDED]: 创建券模板 / 无权限创建
-- [ ] B4 [ADDED]: 创建券模板 / 规则创建后不可修改
+- [x] B1 [ADDED]: 创建券模板 / 创建成功
+  - 测试驱动开发（Test-Driven Development，TDD）红绿证据：`cd backend && go test ./tests/e2e/ -run TestSpecCouponB1 -count=1` 红 → `coupon_spec_test.go:68: POST /api/admin/v1/coupon-templates status = 404 body=404 page not found`；绿 → `ok shop-mall/backend/tests/e2e 2.807s` | 受影响包：`./internal/coupon/... ./internal/platform/database/... ./cmd/server/... ./tests/...` 全 ok，e2e 全量 30 条 PASS（既有 29 + B1），`gofmt -l .` 空
+- [x] B2 [ADDED]: 创建券模板 / 规则非法
+  - 测试驱动开发（Test-Driven Development，TDD）红绿证据：`cd backend && go test ./tests/e2e/ -run TestSpecCouponB2 -count=1` 红 → 12 个子用例全部 `status=500 code=5001`（非法输入穿透到 INSERT，被 0006 的 CHECK 以 `SQLSTATE 23514` 拦下，模板行未落库）；绿 → `ok shop-mall/backend/tests/e2e 2.797s` | 受影响包：`./internal/coupon/... ./internal/platform/http/...` ok，e2e 全量 31 条 PASS，`gofmt -l .` 空。校验落在 service 层，失败早于任何写操作
+- [x] B3 [ADDED]: 创建券模板 / 无权限创建
+  - 测试驱动开发（Test-Driven Development，TDD）红绿证据：`cd backend && go test ./tests/e2e/ -run TestSpecCouponB3 -count=1` 红 → 403 断言已过、失败在失败审计行数 0（`audit_logs` 中 `result='failure'` 恰一条未满足）；绿 → `ok shop-mall/backend/tests/e2e 2.861s` | 受影响包：`./internal/middleware/... ./tests/security/...` ok（安全套件无回归），e2e 全量 32 条 PASS，`gofmt -l .` 空。新增共享闸门 `middleware.AuditedAdminPermission`，仅券模板创建路由启用
+- [x] B4 [ADDED]: 创建券模板 / 规则创建后不可修改
+  - 测试驱动开发（Test-Driven Development，TDD）红绿证据：`cd backend && go test ./tests/e2e/ -run TestSpecCouponB4 -count=1` 红 → 两轮子测试，轮 1「带发放状态字段」`PATCH /api/admin/v1/coupon-templates/{id} status=404 body=404 page not found`（承重断言是"该请求必须被受理"，因为规则字段不被采信要在受理前提下才有意义）；绿 → `ok shop-mall/backend/tests/e2e 2.739s` | 受影响包：`./internal/coupon/... ./internal/middleware/... ./tests/security/...` ok，e2e 全量 33 条 PASS，`gofmt -l .` 空。请求体白名单只声明 `status`，service 侧单列 UPDATE；切换审计留给 B7
 - [ ] B5 [ADDED]: 切换发放状态 / 停发
 - [ ] B6 [ADDED]: 切换发放状态 / 恢复发放
 - [ ] B7 [ADDED]: 切换发放状态 / 切换留痕
@@ -57,3 +61,10 @@ Status: APPROVED
 
 ## Pass Rule
 ALL Behavioral Changes + ALL Quality + lint/test 绿。
+
+## 执行约定
+- 循环内只跑当前行为与受影响包；全量 `go test ./...` 留到本 contract 全部行为交付后统一跑一次。理由：本仓 `./internal/...` 单次全量运行在十分钟量级（个别包单跑近三分钟），逐条行为跑全量会把循环拖垮。
+
+## 变异候选（交付前供变异轮核对，非断言）
+- 「门槛为正整数」这条服务层校验与「抵扣为正整数」在数学上不可分离：`discount_points > 0` 且 `discount_points < threshold_points` 同时成立即推出 `threshold_points > 0`，任何黑盒测试都无法区分。变异轮把它记为等价变异体候选，不要为它补测。
+- 「门槛为负」那条子用例的输入（`threshold=-500, discount=-1000`）满足 `discount < threshold`，真正决定性的违反是 `discount > 0`，判别力上等同「抵扣为负」。

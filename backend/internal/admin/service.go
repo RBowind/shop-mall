@@ -1566,6 +1566,8 @@ var seededPermissions = map[string]struct{}{
 	"admin:self":     {},
 	"user:read":      {},
 	"audit:read":     {},
+	"coupon:read":    {},
+	"coupon:write":   {},
 }
 
 // auditEntry is the structured input to writeAuditLog. The row itself is

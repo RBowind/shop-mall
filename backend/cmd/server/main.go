@@ -22,6 +22,7 @@ import (
 	apprefund "shop-mall/backend/internal/application/refund"
 	"shop-mall/backend/internal/cart"
 	"shop-mall/backend/internal/config"
+	"shop-mall/backend/internal/coupon"
 	"shop-mall/backend/internal/order"
 	"shop-mall/backend/internal/payment"
 	"shop-mall/backend/internal/platform/database"
@@ -209,6 +210,21 @@ func buildRouter(cfg config.Config, db *gorm.DB, logger *slog.Logger, appMetrics
 	if err != nil {
 		return nil, nil, fmt.Errorf("product handler: %w", err)
 	}
+
+	couponService, err := coupon.NewService(coupon.ServiceDeps{DB: db})
+	if err != nil {
+		return nil, nil, fmt.Errorf("coupon service: %w", err)
+	}
+	couponHandler, err := coupon.NewHandler(coupon.HandlerDeps{
+		Service:     couponService,
+		AdminViewer: adminService,
+		Logger:      logger,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("coupon handler: %w", err)
+	}
+
+	couponDeniedAuditor := coupon.NewPermissionDeniedAuditor(db, adminService, logger)
 
 	// Buyer tokens are signed with their own keyring (BUYER_JWT_*), separate
 	// from the administrator keyring, so the buyer middleware and the login
@@ -422,6 +438,15 @@ func buildRouter(cfg config.Config, db *gorm.DB, logger *slog.Logger, appMetrics
 				Now:                func() time.Time { return time.Now().UTC() },
 				PermissionResolver: adminService,
 				AdminStateResolver: adminService,
+			})
+			coupon.RegisterAdminRoutes(group, coupon.AdminRouteDeps{
+				Handler:            couponHandler,
+				Signer:             adminSigner,
+				Cookie:             cfg.AdminCookie,
+				Now:                func() time.Time { return time.Now().UTC() },
+				PermissionResolver: adminService,
+				AdminStateResolver: adminService,
+				DeniedAuditor:      couponDeniedAuditor,
 			})
 			admin.RegisterImageRoutes(group, admin.ImageRouteDeps{
 				Handler:            imageHandler,
