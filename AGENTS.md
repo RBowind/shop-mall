@@ -1,15 +1,51 @@
 # AGENTS.md — AI 工作入口
 
-电商小程序：积分下单、发货、退款的商城。Taro 小程序 + Go 单体后端 + Ant Design Pro 管理后台。本文件只指路，不装知识，每个文档自己看。
+电商小程序：积分下单、发货、退款的商城。Taro 小程序 + Go 单体后端 + Umi Max 管理后台。本文件指路兼记运行口径，业务知识在各文档里。
+
+## 仓库地图
+
+| 目录 | 内容 | 工具链 | 常用命令 |
+|---|---|---|---|
+| `backend/` | Go 单体后端：Gin + GORM + PostgreSQL 16 + goose 迁移 | go modules | `make -C backend test`·`lint`·`build` |
+| `admin/` | 管理后台 SPA：Umi Max 4.7 + React 18 + antd 5 | pnpm workspace | `pnpm --filter admin test`·`build` |
+| `miniapp/` | 买家小程序：Taro 4.2 + React 18 + TDesign | pnpm workspace | `pnpm --filter miniapp test`·`build` |
+| `tools/` | 门禁脚本：openapi / spec / coverage / deploy（Node）、mutation（Python） | Node / Python | 经 Makefile 调用 |
+| `deploy/` | Docker Compose、备份与发布脚本 | — | `make compose-up`·`preflight`·`smoke` |
+
+pnpm workspace 成员是 `miniapp`、`admin`、`tools/openapi`；`backend/` 走 go modules，独立于 workspace。
+
+工具链基线：Go 1.27.1、Node 24.x、pnpm 10.33.0、Docker Compose v5.2.0。
 
 ## 怎么跑
 
-| 模块 | 目录 | 常用命令 |
+根 Makefile 是统一入口：
+
+```bash
+make test            # backend go test + 所有前端包
+make lint            # 只查 Go 的 gofmt——三个前端包都没有 lint 脚本
+make build
+make generate        # openapi.yaml → 两端 src/services/generated/api.d.ts
+make contract-check  # redocly lint + 生成结果与签入产物比对
+make diff-coverage   # 改动行覆盖率，默认 COMPARE=origin/main FAIL_UNDER=80
+```
+
+需要真实数据库的验收门在 Makefile 底部：`make test-e2e`、`test-security`、`test-concurrency`、`admin-e2e`、`restore-drill`。
+
+## PR 门禁
+
+`main` 是保护分支，改动走 PR。CI 按改动路径过滤，未触及的门打印 fast pass 直接绿；`unknown` 兜底负责"改动落在所有清单之外"（新顶层目录、workflow 自身等），命中时四门全跑。
+
+| Job | 触发路径 | 内容 |
 |---|---|---|
-| 后端 Go | backend/ | `make test` · `make lint` · `make build` |
-| 小程序 | miniapp/ | `pnpm test` · `pnpm build` |
-| 管理后台 | admin/ | `pnpm test` · `pnpm build` |
-| 部署 | deploy/ | Docker Compose，手册见 docs/ops/ |
+| contract | `docs/api/**`、`tools/openapi/**`、两端 `generated/**`、workspace 安装面 | `make contract-check` |
+| backend | `backend/**` | gofmt、govulncheck、`go test -race ./...` |
+| frontend | `admin/**`、`miniapp/**` | 两端 test 与 build |
+| coverage | `backend/**`、`tools/coverage/**`、Makefile | diff-cover，改动行 ≥ 80% |
+| unknown | 上述之外的一切 | 四门全跑 |
+
+paths-filter 用 `predicate-quantifier: some-with-excludes`，改 workflow 时保持这个值——默认的 `some` 会把负向模式反转成恒真的正向匹配器，让 unknown 兜底永真、短路分支永不触发。
+
+改接口字段先动 `docs/api/openapi.yaml`，跑 `make generate` 重新生成两端 `api.d.ts`，`make contract-check` 核对生成结果与签入产物一致。
 
 ## 文档地图
 
