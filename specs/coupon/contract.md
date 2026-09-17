@@ -14,9 +14,12 @@ Status: APPROVED
   - 测试驱动开发（Test-Driven Development，TDD）红绿证据：`cd backend && go test ./tests/e2e/ -run TestSpecCouponB4 -count=1` 红 → 两轮子测试，轮 1「带发放状态字段」`PATCH /api/admin/v1/coupon-templates/{id} status=404 body=404 page not found`（承重断言是"该请求必须被受理"，因为规则字段不被采信要在受理前提下才有意义）；绿 → `ok shop-mall/backend/tests/e2e 2.739s` | 受影响包：`./internal/coupon/... ./internal/middleware/... ./tests/security/...` ok，e2e 全量 33 条 PASS，`gofmt -l .` 空。请求体白名单只声明 `status`，service 侧单列 UPDATE；切换审计留给 B7
 - [ ] B5 [ADDED]: 切换发放状态 / 停发
 - [ ] B6 [ADDED]: 切换发放状态 / 恢复发放
-- [ ] B7 [ADDED]: 切换发放状态 / 切换留痕
-- [ ] B8 [ADDED]: 管理员查看模板 / 模板列表
-- [ ] B9 [ADDED]: 管理员查看模板 / 无权限查看
+- [x] B7 [ADDED]: 切换发放状态 / 切换留痕
+  - 测试驱动开发（Test-Driven Development，TDD）红绿证据：`cd backend && go test ./tests/e2e/ -run TestSpecCouponB7 -count=1` 红 → 两个方向子用例均 `切换 ... 后该模板新增成功审计行数 = 0, want 恰好 1`（切换成功但不写留痕）；绿 → `ok shop-mall/backend/tests/e2e 2.883s` | 受影响包：`./internal/coupon/... ./internal/middleware/... ./tests/security/...` ok，e2e 全量 34 条 PASS，`gofmt -l .` 空。前值在 UPDATE 前同事务读出，`BeforeData`/`AfterData` 双快照含 `status`
+- [x] B8 [ADDED]: 管理员查看模板 / 模板列表
+  - 测试驱动开发（Test-Driven Development，TDD）红绿证据：`cd backend && go test ./tests/e2e/ -run TestSpecCouponB8 -count=1` 红 → `GET /api/admin/v1/coupon-templates?page=1&page_size=2 status=404 body=404 page not found`；绿 → `ok shop-mall/backend/tests/e2e 2.938s` | 受影响包：`./internal/coupon/... ./internal/middleware/... ./tests/security/...` ok，e2e 全量 35 条 PASS，`gofmt -l .` 空。列表行内嵌创建响应的同一投影，派生列只有 `used_count`；核销数按模板 id 一条聚合查询（`status='used'`）
+- [x] B9 [ADDED]: 管理员查看模板 / 无权限查看
+  - 测试驱动开发（Test-Driven Development，TDD）红绿证据：**无红灯**。`cd backend && go test ./tests/e2e/ -run TestSpecCouponB9 -count=1` → `PASS`（`ok 3.015s`，实测 `HTTP 403 code=1003 message="insufficient permission"`）。行为在 B8 交付时随列表路由的 `coupon:read` 闸门一并生效，非本项实现；本条属"行为已实现、缺证据"，由本轮新写的用例认领回链 | 受影响包：`./tests/e2e/...` ok，e2e 全量 36 条 PASS，`gofmt -l .` 空。用例自证了角色权限集合只含 `coupon:write`、先打 `/auth/me` 排除未认证，并做了同路径持权对照（200）
 - [ ] B10 [ADDED]: 领券中心可见性 / 列表内容
 - [ ] B11 [ADDED]: 领券中心可见性 / 不可领模板不展示
 - [ ] B12 [ADDED]: 领取优惠券 / 领取成功
@@ -61,6 +64,18 @@ Status: APPROVED
 
 ## Pass Rule
 ALL Behavioral Changes + ALL Quality + lint/test 绿。
+
+## 切片调整
+- B5、B6 的 `THEN` 断言对象是 `GET /coupons/center` 与 `POST /coupons/{templateId}/receive`（属 B10–B12），按原顺序硬走会在 B5 卡住。故这两条与 B10–B17、B24 同批交付，B7（切换留痕）留在本切片。
+- B18、B19 的 `THEN` 依赖订单待支付生命周期（`pending_payment`、`hold_stock`、超时取消），当前代码是"下单即成交"，全库零存在。这两条挂账，等该生命周期单独立项时补上并回改券的实现，详见下表「挂账」。
+
+## 挂账
+| B | 依赖 | 状态 |
+|---|---|---|
+| B5 | 领券中心与领取端点（B10–B12） | 挪到切片 2 |
+| B6 | 领券中心与领取端点（B10–B12） | 挪到切片 2 |
+| B18 | 订单待支付生命周期（`pending_payment` / `hold_stock` / 超时取消） | 挂账，待该 capability 立项 |
+| B19 | 同上 | 挂账 |
 
 ## 执行约定
 - 循环内只跑当前行为与受影响包；全量 `go test ./...` 留到本 contract 全部行为交付后统一跑一次。理由：本仓 `./internal/...` 单次全量运行在十分钟量级（个别包单跑近三分钟），逐条行为跑全量会把循环拖垮。

@@ -75,4 +75,13 @@ func RegisterAdminRoutes(group *gin.RouterGroup, deps AdminRouteDeps) {
 	protected.PATCH("/coupon-templates/:templateId",
 		middleware.AuditedAdminPermission(deps.PermissionResolver, "coupon:write", deps.DeniedAuditor, couponTemplateStatusAuditDescriptor),
 		deps.Handler.AdminUpdateTemplateStatus)
+	// The list is a read path, so it takes the plain semantic gate: the denied
+	// attempt is answered with the same 403 the audited gate produces, without
+	// a trail. The audit exists because the spec's write scenarios (无权限创建)
+	// require a failure record for a rejected write; the read scenario
+	// (无权限查看) pins the 403 alone, and no other admin read endpoint in this
+	// repo records a denial.
+	protected.GET("/coupon-templates",
+		middleware.AdminPermission(deps.PermissionResolver, "coupon:read"),
+		deps.Handler.AdminListTemplates)
 }

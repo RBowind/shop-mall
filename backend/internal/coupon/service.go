@@ -35,6 +35,15 @@ type Status = database.CouponTemplateStatus
 const (
 	StatusActive = database.CouponTemplateStatusActive
 	StatusHalted = database.CouponTemplateStatusHalted
+
+	// userCouponStatusUsed is the user_coupons state a redeemed coupon holds.
+	// The redeemed count the template list reports is the number of these rows
+	// (techspec 07 §5); the vocabulary itself is frozen by the 0006
+	// user_coupons_status_valid CHECK constraint.
+	userCouponStatusUsed = "used"
+
+	defaultPageSize = 20
+	maxPageSize     = 100
 )
 
 // Actor is the authorized administrator carrying out a coupon template write.
@@ -56,6 +65,16 @@ type TemplateView struct {
 	ValidFrom       time.Time
 	ValidUntil      time.Time
 	Status          Status
+}
+
+// TemplateListItem is one row of the administrator template list: the template
+// read projection plus the redeemed-coupon count derived from user_coupons.
+type TemplateListItem struct {
+	TemplateView
+	// UsedCount is 已核销数: the number of coupons under this template holding
+	// the used state (docs/architecture/07-coupon-pay-lifecycle.md §5 核销数按
+	// user_coupons.status = 'used' 聚合派生).
+	UsedCount int64
 }
 
 // TemplateInput is the validated create payload: the rule set plus the validity
@@ -134,12 +153,90 @@ func (s *Service) CreateTemplate(ctx context.Context, actor Actor, input Templat
 	return toTemplateView(template), nil
 }
 
+// ListTemplates returns every template, paused (halted) ones included, newest
+// first, each row carrying the rules, the issuance counter and the
+// redeemed-coupon count (specs/coupon/spec.md 模板列表).
+//
+// Nothing here filters on the issuance status: a halted template is still a
+// template the administrator administers.
+func (s *Service) ListTemplates(ctx context.Context, page, pageSize int) ([]TemplateListItem, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > maxPageSize {
+		pageSize = defaultPageSize
+	}
+	var total int64
+	if err := s.db.WithContext(ctx).Model(&database.CouponTemplate{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var templates []database.CouponTemplate
+	if err := s.db.WithContext(ctx).
+		Model(&database.CouponTemplate{}).
+		Order("id DESC").
+		Offset((page - 1) * pageSize).
+		Limit(pageSize).
+		Find(&templates).Error; err != nil {
+		return nil, 0, err
+	}
+	usedCounts, err := s.countUsedCoupons(ctx, templates)
+	if err != nil {
+		return nil, 0, err
+	}
+	items := make([]TemplateListItem, 0, len(templates))
+	for i := range templates {
+		items = append(items, TemplateListItem{
+			TemplateView: toTemplateView(templates[i]),
+			UsedCount:    usedCounts[templates[i].ID],
+		})
+	}
+	return items, total, nil
+}
+
+// countUsedCoupons returns, per template id, the number of coupons in the used
+// state. One grouped query covers the whole page rather than one query per row:
+// the list page is the only caller and a per-row count would grow with
+// page_size.
+//
+// user_coupons carries no model yet — the receive path that writes it belongs
+// to a later slice — so the aggregate names the table the migration created.
+func (s *Service) countUsedCoupons(ctx context.Context, templates []database.CouponTemplate) (map[uid.ID]int64, error) {
+	counts := make(map[uid.ID]int64, len(templates))
+	if len(templates) == 0 {
+		return counts, nil
+	}
+	ids := make([]uid.ID, 0, len(templates))
+	for i := range templates {
+		ids = append(ids, templates[i].ID)
+	}
+	type row struct {
+		TemplateID uid.ID `gorm:"column:template_id"`
+		Total      int64  `gorm:"column:total"`
+	}
+	var rows []row
+	if err := s.db.WithContext(ctx).
+		Table("user_coupons").
+		Select("template_id, COUNT(*) AS total").
+		Where("template_id IN ? AND status = ?", ids, userCouponStatusUsed).
+		Group("template_id").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		counts[r.TemplateID] = r.Total
+	}
+	return counts, nil
+}
+
 // SetTemplateStatus switches an existing template between issuing (active) and
 // halted (specs/coupon/spec.md 切换发放状态). It is the only write path into an
 // existing template row, and the update names the status column alone: the rule
 // set and the validity window are frozen at creation (specs/coupon/spec.md
 // 规则创建后不可修改), so no rule value ever reaches this statement.
-func (s *Service) SetTemplateStatus(ctx context.Context, id uid.ID, status Status) (TemplateView, error) {
+//
+// The switch and its success audit row commit together (specs/coupon/spec.md
+// 切换留痕): a recorded switch always has the status change behind it.
+func (s *Service) SetTemplateStatus(ctx context.Context, actor Actor, id uid.ID, status Status) (TemplateView, error) {
 	if uid.IsZero(id) {
 		return TemplateView{}, ErrTemplateNotFound
 	}
@@ -148,19 +245,35 @@ func (s *Service) SetTemplateStatus(ctx context.Context, id uid.ID, status Statu
 	}
 	var updated database.CouponTemplate
 	err := database.RunTransaction(ctx, s.db, func(tx *gorm.DB) error {
-		// RowsAffected is the existence check: the WHERE clause carries the id
-		// alone, so zero affected rows means the template is gone.
-		result := tx.WithContext(tx.Statement.Context).
+		// The pre-image is read before the UPDATE and inside the same
+		// transaction: the audit row has to name the status this switch started
+		// from, which a post-update read-back can no longer recover.
+		var current database.CouponTemplate
+		if err := tx.WithContext(tx.Statement.Context).Where("id = ?", id).First(&current).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrTemplateNotFound
+			}
+			return err
+		}
+		if err := tx.WithContext(tx.Statement.Context).
 			Model(&database.CouponTemplate{}).
 			Where("id = ?", id).
-			Update("status", status)
-		if result.Error != nil {
-			return result.Error
+			Update("status", status).Error; err != nil {
+			return err
 		}
-		if result.RowsAffected == 0 {
-			return ErrTemplateNotFound
+		if err := tx.WithContext(tx.Statement.Context).Where("id = ?", id).First(&updated).Error; err != nil {
+			return err
 		}
-		return tx.WithContext(tx.Statement.Context).Where("id = ?", id).First(&updated).Error
+		return audit.Write(tx, audit.Entry{
+			ActorAdminID: &actor.AdminID,
+			ActorRole:    actor.RoleName,
+			Action:       "coupon_template.status_change",
+			TargetType:   "coupon_template",
+			TargetID:     &id,
+			Result:       "success",
+			BeforeData:   templateAuditData(&current),
+			AfterData:    templateAuditData(&updated),
+		})
 	})
 	if err != nil {
 		return TemplateView{}, err
@@ -219,8 +332,11 @@ func toTemplateView(template database.CouponTemplate) TemplateView {
 	}
 }
 
-// templateAuditData is the after-image of a template creation. It carries the
-// rule set so the audit trail alone answers "which rules were frozen here".
+// templateAuditData is a status-tagged snapshot of a template, used as the
+// after-image of a creation and as both images of an issuance-status switch.
+// The same key set on both sides is what lets the audit trail read a switch as
+// "field by field before → after". It carries the rule set so the audit trail
+// alone answers "which rules were frozen here".
 func templateAuditData(template *database.CouponTemplate) map[string]any {
 	if template == nil {
 		return nil
