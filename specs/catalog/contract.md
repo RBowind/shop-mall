@@ -1,29 +1,29 @@
 # Sprint Contract: catalog
 Source: specs/catalog/spec.md
-Status: DRAFT（待独立 Evaluator 与人 gate）
+Status: APPROVED
 
 ## Behavioral Changes
 
-- [ ] B1 [ADDED]: 免登录浏览在售商品 / 列表 — verified by BDD test
-- [ ] B2 [ADDED]: 免登录浏览在售商品 / 详情在售 — verified by BDD test
-- [ ] B3 [ADDED]: 免登录浏览在售商品 / 详情不可见 — verified by BDD test
-- [ ] B4 [ADDED]: 免登录浏览在售商品 / 缺货商品仍可见 — verified by BDD test
-- [ ] B5 [ADDED]: 分类目录与筛选 / 目录 — verified by BDD test
-- [ ] B6 [ADDED]: 分类目录与筛选 / 按分类筛选 — verified by BDD test
-- [ ] B7 [ADDED]: 商品名搜索 / 子串命中 — verified by BDD test
-- [ ] B8 [ADDED]: 商品名搜索 / 空结果 — verified by BDD test
-- [ ] B9 [ADDED]: 商品名搜索 / 结果上限 — verified by BDD test
-- [ ] B10 [ADDED]: 图片地址由服务端给出 / 图集字段 — verified by BDD test
-- [ ] B11 [ADDED]: 管理端商品维护 / 管理端列表按状态筛选 — verified by BDD test
-- [ ] B12 [ADDED]: 管理端商品维护 / 新建商品 — verified by BDD test
-- [ ] B13 [ADDED]: 管理端商品维护 / 下架即时生效 — verified by BDD test
-- [ ] B14 [ADDED]: 管理端商品维护 / 编辑与重新上架 — verified by BDD test
-- [ ] B15 [ADDED]: 管理端商品维护 / 未知分类键 — verified by BDD test
-- [ ] B16 [ADDED]: 管理端商品维护 / 无写权限 — verified by BDD test
-- [ ] B17 [ADDED]: 商品图上传 / 合法上传 — verified by BDD test
-- [ ] B18 [ADDED]: 商品图上传 / 非图片文件 — verified by BDD test
-- [ ] B19 [MODIFIED]: 商品图上传 / 上传超限图片 — verified by BDD test
-- [ ] B20 [MODIFIED]: 商品图上传 / 图集超过上限 — verified by BDD test
+- [ ] B1 [ADDED]: 免登录浏览在售商品 / 列表
+- [ ] B2 [ADDED]: 免登录浏览在售商品 / 详情在售
+- [ ] B3 [ADDED]: 免登录浏览在售商品 / 详情不可见
+- [ ] B4 [ADDED]: 免登录浏览在售商品 / 缺货商品仍可见
+- [ ] B5 [ADDED]: 分类目录与筛选 / 目录
+- [ ] B6 [ADDED]: 分类目录与筛选 / 按分类筛选
+- [ ] B7 [ADDED]: 商品名搜索 / 子串命中
+- [ ] B8 [ADDED]: 商品名搜索 / 空结果
+- [ ] B9 [ADDED]: 商品名搜索 / 结果上限
+- [ ] B10 [ADDED]: 图片地址由服务端给出 / 图集字段
+- [ ] B11 [ADDED]: 管理端商品维护 / 管理端列表按状态筛选
+- [ ] B12 [ADDED]: 管理端商品维护 / 新建商品
+- [ ] B13 [ADDED]: 管理端商品维护 / 下架即时生效
+- [ ] B14 [ADDED]: 管理端商品维护 / 编辑与重新上架
+- [ ] B15 [ADDED]: 管理端商品维护 / 未知分类键
+- [ ] B16 [ADDED]: 管理端商品维护 / 无写权限
+- [ ] B17 [ADDED]: 商品图上传 / 合法上传
+- [ ] B18 [ADDED]: 商品图上传 / 非图片文件
+- [ ] B19 [MODIFIED]: 商品图上传 / 上传超限图片
+- [ ] B20 [MODIFIED]: 商品图上传 / 图集超过上限
 
 ## Quality
 - [ ] Q1: 后端全量测试 `go test ./...` 绿

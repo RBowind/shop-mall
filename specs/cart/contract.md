@@ -1,18 +1,18 @@
 # Sprint Contract: cart
 Source: specs/cart/spec.md
-Status: DRAFT（待独立 Evaluator 与人 gate）
+Status: APPROVED
 
 ## Behavioral Changes
 
-- [ ] B1 [ADDED]: 加购需登录且同商品合并数量 / 重复加购 — verified by BDD test
-- [ ] B2 [ADDED]: 加购需登录且同商品合并数量 / 未登录加购 — verified by BDD test
-- [ ] B3 [ADDED]: 购物车行内管理 / 改数量 — verified by BDD test
-- [ ] B4 [ADDED]: 购物车行内管理 / 删除行 — verified by BDD test
-- [ ] B5 [ADDED]: 购物车行内管理 / 操作非本人的行 — verified by BDD test
-- [ ] B6 [ADDED]: 购物车行内管理 / 数量非法 — verified by BDD test
-- [ ] B7 [ADDED]: 不可购标记 / 管理员下架后 — verified by BDD test
-- [ ] B8 [ADDED]: 不可购标记 / 库存不足 — verified by BDD test
-- [ ] B9 [ADDED]: 不可购标记 / 客户端拦截结算 — verified by BDD test
+- [x] B1 [ADDED]: 加购需登录且同商品合并数量 / 重复加购
+- [x] B2 [ADDED]: 加购需登录且同商品合并数量 / 未登录加购
+- [x] B3 [ADDED]: 购物车行内管理 / 改数量
+- [x] B4 [ADDED]: 购物车行内管理 / 删除行
+- [x] B5 [ADDED]: 购物车行内管理 / 操作非本人的行
+- [x] B6 [ADDED]: 购物车行内管理 / 数量非法
+- [x] B7 [ADDED]: 不可购标记 / 管理员下架后
+- [x] B8 [ADDED]: 不可购标记 / 库存不足
+- [x] B9 [ADDED]: 不可购标记 / 客户端拦截结算
 
 ## Quality
 - [x] Q1: 后端全量测试 `go test ./...` 绿 — 2026-09-02 devloop 收尾兜底：26 包全 ok；tests/e2e ok 11.6s、tests/security ok 8.1s

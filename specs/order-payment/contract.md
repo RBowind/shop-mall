@@ -1,22 +1,22 @@
 # Sprint Contract: order-payment
 Source: specs/order-payment/spec.md
-Status: DRAFT（待独立 Evaluator 与人 gate）
+Status: APPROVED
 
 ## Behavioral Changes
 
-- [ ] B1 [ADDED]: 确认支付 / 支付成功 — verified by BDD test
-- [ ] B2 [ADDED]: 确认支付 / 余额不足 — verified by BDD test
-- [ ] B3 [ADDED]: 确认支付 / 非待支付状态支付 — verified by BDD test
-- [ ] B4 [ADDED]: 确认支付 / 并发与重复支付只成交一次 — verified by BDD test
-- [ ] B5 [ADDED]: 确认支付 / 支付他人订单 — verified by BDD test
-- [ ] B6 [ADDED]: 支付时限 / 时限随订单生成 — verified by BDD test
-- [ ] B7 [ADDED]: 支付时限 / 取消处理前仍可支付 — verified by BDD test
-- [ ] B8 [ADDED]: 超时自动取消 / 超时订单被取消 — verified by BDD test
-- [ ] B9 [ADDED]: 超时自动取消 / 取消与支付并发只有一方生效 — verified by BDD test
-- [ ] B10 [ADDED]: 超时自动取消 / 同一订单重复处理只释放一次 — verified by BDD test
-- [ ] B11 [ADDED]: 超时自动取消 / 处理失败不漏单 — verified by BDD test
-- [ ] B12 [ADDED]: 超时自动取消 / 取消是终态 — verified by BDD test
-- [ ] B13 [ADDED]: 过期券清理任务 / 过期券被置终态 — verified by BDD test
+- [ ] B1 [ADDED]: 确认支付 / 支付成功
+- [ ] B2 [ADDED]: 确认支付 / 余额不足
+- [ ] B3 [ADDED]: 确认支付 / 非待支付状态支付
+- [ ] B4 [ADDED]: 确认支付 / 并发与重复支付只成交一次
+- [ ] B5 [ADDED]: 确认支付 / 支付他人订单
+- [ ] B6 [ADDED]: 支付时限 / 时限随订单生成
+- [ ] B7 [ADDED]: 支付时限 / 取消处理前仍可支付
+- [ ] B8 [ADDED]: 超时自动取消 / 超时订单被取消
+- [ ] B9 [ADDED]: 超时自动取消 / 取消与支付并发只有一方生效
+- [ ] B10 [ADDED]: 超时自动取消 / 同一订单重复处理只释放一次
+- [ ] B11 [ADDED]: 超时自动取消 / 处理失败不漏单
+- [ ] B12 [ADDED]: 超时自动取消 / 取消是终态
+- [ ] B13 [ADDED]: 过期券清理任务 / 过期券被置终态
 
 ## Quality
 - [ ] Q1: 后端全量测试与支付、超时取消测试绿

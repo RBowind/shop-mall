@@ -120,6 +120,7 @@ func postJSON(t *testing.T, client *http.Client, url string, body any) *http.Res
 }
 
 // B1: 登录成功后，响应任何位置都不出现微信会话密钥（session_key 三禁之"不下发"）。
+// contract: B1
 func TestSpecBuyerAuthB1_SessionKeyNeverLeaksToResponse(t *testing.T) {
 	h := NewHarness(t, testDB)
 
@@ -149,6 +150,7 @@ func TestSpecBuyerAuthB1_SessionKeyNeverLeaksToResponse(t *testing.T) {
 }
 
 // B2: code2Session 失败 → HTTP 422、业务码落 2xxx 认证段，且用户计数不变。
+// contract: B2
 func TestSpecBuyerAuthB2_WeChatFailureIs2xxxBusinessCodeAndCreatesNoUser(t *testing.T) {
 	h := NewHarness(t, testDB)
 
@@ -176,6 +178,7 @@ func countRows(t *testing.T, db *gorm.DB, query string) int64 {
 }
 
 // B3: 过期、伪造签名、管理域签发的三种买家侧请求全部 401。
+// contract: B3
 func TestSpecBuyerAuthB3_ExpiredAndForgedAndAdminTokensRejectedByBuyerAPI(t *testing.T) {
 	h := NewHarness(t, testDB)
 
@@ -233,6 +236,7 @@ func TestSpecBuyerAuthB3_ExpiredAndForgedAndAdminTokensRejectedByBuyerAPI(t *tes
 }
 
 // B7: 赠送配置为 0 时创建成功，但余额为 0 且不留 signup_bonus 流水。
+// contract: B7
 func TestSpecBuyerAuthB7_ZeroSignupBonusGrantsNothing(t *testing.T) {
 	h := NewHarness(t, testDB)
 	srv, _ := newBuyerAuthServer(t, h.DB, 0, 0)
@@ -271,6 +275,7 @@ func TestSpecBuyerAuthB7_ZeroSignupBonusGrantsNothing(t *testing.T) {
 // B9: 连续失败登录后超出预算的请求被 429 拒绝，且不再触达微信侧。
 // 注意：实现里"登录成功会重置该 IP 的计数"，因此本例断言的是失败连击路径；
 // 成功是否也应计入每分钟预算，见 spec 与实现分歧上报（PRD F-102 字面是请求数）。
+// contract: B9
 func TestSpecBuyerAuthB9_LoginRateLimitedAfterFailedAttempts(t *testing.T) {
 	h := NewHarness(t, testDB)
 	srv, counted := newBuyerAuthServer(t, h.DB, signupBonus, 3)
@@ -294,6 +299,7 @@ func TestSpecBuyerAuthB9_LoginRateLimitedAfterFailedAttempts(t *testing.T) {
 }
 
 // B11: 头像上传返回服务端 object key 与可访问完整地址，且全局生效（GET /me 可见）。
+// contract: B11
 func TestSpecBuyerAuthB11_AvatarUploadReturnsPublicURL(t *testing.T) {
 	h := NewHarness(t, testDB)
 	token, _ := h.BuyerLogin("code-buyer-a")

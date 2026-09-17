@@ -90,3 +90,19 @@ export function isNonPurchasable(item: CartItem): boolean {
 export function purchasableItems(items: CartItem[]): CartItem[] {
   return items.filter((item) => !isNonPurchasable(item));
 }
+
+export interface CheckoutDecision {
+  action: "proceed" | "blocked" | "empty";
+  message?: string;
+}
+
+/** 结算入口的判定：购物车的 全选 是静态的，没有「只结算勾选行」的交互，所以只要有一行不可购就整体拦下。 */
+export function checkoutDecision(items: CartItem[]): CheckoutDecision {
+  if (items.some(isNonPurchasable)) {
+    return { action: "blocked", message: "有商品已下架，请先移除" };
+  }
+  if (items.length === 0) {
+    return { action: "empty", message: "购物车是空的" };
+  }
+  return { action: "proceed" };
+}

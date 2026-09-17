@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "build:weapp": "pnpm run build",
-    "test": "node --experimental-strip-types --no-warnings --test test/*.test.mjs"
+    "test": "node --experimental-strip-types --no-warnings --test \"test/*.test.mjs\" \"test/*_spec_test.mjs\""
   },
   "devDependencies": {
     "@babel/preset-react": "^7.29.7",

@@ -4,6 +4,10 @@ name: Pull Request Checks
 # release-artifacts.yml 里的 deployment，共五道 required checks。
 # coverage 只在 pull_request 事件跑（改动行口径依赖 base 分支）。
 #
+# spec/contract 结构一致性门禁并入 contract job：specs/** 此前既不在任何门的正向
+# filter 里、又躺在 unknown 的负向清单里，只改 spec 的 PR 会四门空跑透绿。
+# 不新开 job 是因为新 job 不是 required check，得先改分支保护才拦得住。
+#
 # fast-pass 口径：required check 必须永远以 success/failure 出现，所以四道门的
 # job 本身永远跑，只把"真活"步骤用 needs.changes 短路——无相关改动即空跑透绿。
 # （job 级 if 跳过会让 check 变灰悬空，卡死分支保护，是反模式。）
@@ -33,6 +37,7 @@ jobs:
       backend: ${{ github.event_name != 'pull_request' || steps.filter.outputs.backend == 'true' || steps.filter.outputs.unknown == 'true' }}
       frontend: ${{ github.event_name != 'pull_request' || steps.filter.outputs.frontend == 'true' || steps.filter.outputs.unknown == 'true' }}
       coverage: ${{ github.event_name != 'pull_request' || steps.filter.outputs.coverage == 'true' || steps.filter.outputs.unknown == 'true' }}
+      spec: ${{ github.event_name != 'pull_request' || steps.filter.outputs.spec == 'true' || steps.filter.outputs.unknown == 'true' }}
     steps:
       # push main 恒为全量，filter 结果无意义，跳过（也避开 push 事件对完整历史的要求）。
       - if: github.event_name == 'pull_request'
@@ -56,6 +61,15 @@ jobs:
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
+            # spec 与 contract 的结构一致性归 contract job 承载（它已是 required check，
+            # 新开 job 得先改分支保护才拦得住）。读三个测试根是因为要核回链——
+            # contract 混着前后端行为，回链可能落在任一侧。
+            spec:
+              - 'specs/**'
+              - 'tools/spec/**'
+              - 'backend/tests/**'
+              - 'miniapp/test/**'
+              - 'admin/test/**'
             backend:
               - 'backend/**'
             frontend:
@@ -94,16 +108,23 @@ jobs:
     needs: changes
     env:
       RUN_CHECK: ${{ needs.changes.outputs.contract }}
+      RUN_SPEC: ${{ needs.changes.outputs.spec }}
     steps:
       - name: Check out source
-        if: env.RUN_CHECK == 'true'
+        if: env.RUN_CHECK == 'true' || env.RUN_SPEC == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Node.js
-        if: env.RUN_CHECK == 'true'
+        if: env.RUN_CHECK == 'true' || env.RUN_SPEC == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 24.x
+
+      # 不需要任何依赖，所以放在 pnpm install 之前——只碰 spec 或测试回链的 PR
+      # 到这一步就出结论，不必等装包。
+      - name: Check spec/contract consistency
+        if: env.RUN_SPEC == 'true'
+        run: make spec-check
 
       - name: Set up pnpm
         if: env.RUN_CHECK == 'true'
@@ -119,9 +140,9 @@ jobs:
         if: env.RUN_CHECK == 'true'
         run: make contract-check
 
-      - name: Fast pass (no contract inputs changed)
-        if: env.RUN_CHECK != 'true'
-        run: echo "OpenAPI contract inputs untouched in this PR; fast pass."
+      - name: Fast pass (no contract or spec inputs changed)
+        if: env.RUN_CHECK != 'true' && env.RUN_SPEC != 'true'
+        run: echo "OpenAPI contract and spec inputs untouched in this PR; fast pass."
 
   backend:
     runs-on: ubuntu-latest

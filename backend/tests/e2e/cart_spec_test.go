@@ -28,7 +28,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// spec: B1
+// contract: B1
 //
 // 已登录买家两次加购同一商品：购物车只保留一行，数量为两次之和。
 //
@@ -156,7 +156,7 @@ func TestSpecCartB1_DuplicateAddMergesIntoOneRowWithAccumulatedQuantity(t *testi
 	}
 }
 
-// spec: B2
+// contract: B2
 //
 // 未登录加购：无有效买家 JWT 请求 POST /api/v1/cart 被 401 拒绝，购物车不变。
 //
@@ -330,7 +330,7 @@ func TestSpecCartB2_AddWithoutValidBuyerJWTRejected401CartUnchanged(t *testing.T
 	}
 }
 
-// spec: B3
+// contract: B3
 //
 // 改数量：买家对购物车行 PATCH 合法新数量后变更生效且持久——重新拉取列表返回
 // 新数量，DB 中该行 quantity 亦为新值。
@@ -452,7 +452,7 @@ func TestSpecCartB3_UpdateQuantityTakesEffectAndPersists(t *testing.T) {
 	}
 }
 
-// spec: B4
+// contract: B4
 //
 // 删除行：买家对购物车行 DELETE /api/v1/cart/{itemId} 后该行移除，重新拉取
 // 列表不再出现，且删除持久在服务端。
@@ -670,7 +670,7 @@ func TestSpecCartB4_DeleteRowNoLongerAppearsInList(t *testing.T) {
 	}
 }
 
-// spec: B5
+// contract: B5
 //
 // 操作非本人的行：itemId 不属于当前买家时，PATCH（改数量）与 DELETE（删除）
 // 一律响应 404（不暴露资源是否存在），他人购物车不变。
@@ -890,7 +890,7 @@ func TestSpecCartB5_OperateForeignCartItemRejected404ForeignCartUnchanged(t *tes
 	}
 }
 
-// spec: B6
+// contract: B6
 //
 // 数量非法：已登录买家在加购（POST /api/v1/cart）与改数量
 // （PATCH /api/v1/cart/{itemId}）两个入口提交数量 ≤0 或非整数时，返回参数
@@ -1224,7 +1224,7 @@ func TestSpecCartB6_InvalidQuantityRejectedWith4xxAndCartRowUnchanged(t *testing
 	}
 }
 
-// spec: B7
+// contract: B7
 //
 // 管理员下架后：购物车内某商品被管理员下架，买家再拉取列表，该行仍在列表中
 // （行数不减、行 id 与 quantity 不变）且被标记为不可购；其他在售行不被标记。
@@ -1483,7 +1483,7 @@ func TestSpecCartB7_AdminOffSaleKeepsCartRowMarkedNonPurchasable(t *testing.T) {
 	assertCartRow(t, h.DB, userID, productXID, 1, 3)
 }
 
-// spec: B8
+// contract: B8
 //
 // 库存不足：买家 GET /api/v1/cart，某行对应商品的当前库存小于该行数量，
 // 该行被标记为不可购（行仍在列表中，标记依据是行内数量与商品当前库存的比对）。

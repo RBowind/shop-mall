@@ -9,7 +9,7 @@ COMPOSE_FILE ?= deploy/compose/docker-compose.yml
 # Local baseline verified on 2026-08-10:
 # Go 1.27.1, Node 24.18.0, pnpm 10.33.0, Docker Compose v5.2.0.
 
-.PHONY: lint test build generate contract-check frontend-checks diff-coverage migration-config-check image-build compose-up test-concurrency test-e2e test-security backup-db backup-images restore-drill preflight smoke rollback
+.PHONY: lint test build generate contract-check spec-check frontend-checks diff-coverage migration-config-check image-build compose-up test-concurrency test-e2e test-security backup-db backup-images restore-drill preflight smoke rollback
 
 lint:
 	$(MAKE) -C backend lint
@@ -28,6 +28,12 @@ generate:
 
 contract-check:
 	$(PNPM) contract-check
+
+# spec 与 sprint contract 的结构一致性门禁：B 编号唯一连续、B 标签能定位到 spec 的
+# Requirement/Scenario、合同内引用的 B/Q 不悬空、已勾选的 B 必须有回链用例、
+# 测试里的回链必须归属到某份 contract。纯 Node，无依赖。
+spec-check:
+	node tools/spec/check-spec-contract.mjs
 
 frontend-checks:
 	$(PNPM) --filter miniapp test

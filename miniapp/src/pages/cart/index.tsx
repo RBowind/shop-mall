@@ -22,7 +22,7 @@ import { sumCartItems } from "../../lib/points";
 import { getTaro } from "../../lib/taro";
 import { showErrorModal, showErrorToast } from "../../lib/ui";
 import { authStore } from "../../stores/auth";
-import { cartStore, isNonPurchasable, purchasableItems } from "../../stores/cart";
+import { cartStore, checkoutDecision, isNonPurchasable, purchasableItems } from "../../stores/cart";
 
 import "./index.css";
 
@@ -48,15 +48,12 @@ export function CartPage() {
   });
 
   const handleCheckout = () => {
-    if (nonPurchasableCount > 0) {
-      getTaro().showToast({ title: "有商品已下架，请先移除", icon: "none" });
+    const decision = checkoutDecision(items);
+    if (decision.action === "proceed") {
+      getTaro().navigateTo({ url: "/pages/checkout/index" });
       return;
     }
-    if (items.length === 0) {
-      getTaro().showToast({ title: "购物车是空的", icon: "none" });
-      return;
-    }
-    getTaro().navigateTo({ url: "/pages/checkout/index" });
+    getTaro().showToast({ title: decision.message ?? "", icon: "none" });
   };
 
   return (
