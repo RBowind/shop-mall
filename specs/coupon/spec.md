@@ -6,6 +6,12 @@
 
 - techspec: `docs/architecture/07-coupon-pay-lifecycle.md` §2、§3、§5；主档 `docs/tech-specs/interfaces.md`（错误码段与鉴权约定）
 
+## Related Capabilities
+
+- `specs/checkout/spec.md` — 下单事务内预占券并判定券资格，本 spec 的状态机从该处被触发
+- `specs/order-payment/spec.md` — 支付成功与超时取消是券核销与释放的触发点
+- `specs/refund/spec.md` — 退款审批通过是券按有效期处置的触发点
+
 ## Requirements
 
 ### Requirement: 创建券模板
@@ -72,12 +78,12 @@ The system SHALL 向持 `coupon:read` 的管理员分页返回全部券模板，
 
 ### Requirement: 领券中心可见性
 
-The system SHALL 向已登录买家展示正在发放且当前处于有效期内的模板，附本人已领数。
+The system SHALL 向已登录买家展示正在发放且当前处于有效期内的模板，附本人未过期的已领数。
 
 #### Scenario: 列表内容
 
 - **WHEN** 买家 `GET /api/v1/coupons/center`
-- **THEN** 返回 `status` 为 `active` 且 `valid_from` 已过、`valid_until` 未到的模板，分页；每条附当前买家在该模板下的已领数与可领标记（未达限领且未售罄为可领）
+- **THEN** 返回 `status` 为 `active` 且 `valid_from` 已过、`valid_until` 未到的模板，分页；每条附当前买家在该模板下未过期的已领数与可领标记（未达限领且未售罄为可领）
 
 #### Scenario: 不可领模板不展示
 
@@ -87,7 +93,7 @@ The system SHALL 向已登录买家展示正在发放且当前处于有效期内
 
 ### Requirement: 领取优惠券
 
-The system SHALL 让买家以 Idempotency-Key（幂等键，客户端生成的防重标识）领取一张券：受模板总量与每人限领双重约束，同键重复提交不重复发券，并发下不超发。
+The system SHALL 让买家以 Idempotency-Key（幂等键，客户端生成的防重标识）领取一张券：受模板总量与每人限领双重约束——每人限领按该买家在该模板下未过期的领取数计数，已过期的券让出额度；同键重复提交不重复发券，并发下不超发。
 
 #### Scenario: 领取成功
 
@@ -96,8 +102,15 @@ The system SHALL 让买家以 Idempotency-Key（幂等键，客户端生成的�
 
 #### Scenario: 达到每人限领
 
-- **WHEN** 买家在该模板下已持有的券数达到 `per_user_limit`
+- **WHEN** 买家 `POST /api/v1/coupons/{templateId}/receive` 携带 Idempotency-Key
+- **AND** 该买家在该模板下未过期的券数（`available`、`held`、`used` 三者之和）已达 `per_user_limit`
 - **THEN** 返回 2002 业务错误码（已达限领），券数与已领取数不变
+
+#### Scenario: 过期券让出额度
+
+- **WHEN** 买家 `POST /api/v1/coupons/{templateId}/receive` 携带 Idempotency-Key
+- **AND** 该买家在该模板下持有已过期（`expired`）的券、未过期的券数少于 `per_user_limit`，且模板仍有剩余可领数
+- **THEN** 领取成功，买家新获得一张可用（`available`）券，模板已领取数加一
 
 #### Scenario: 模板售罄与并发不超发
 

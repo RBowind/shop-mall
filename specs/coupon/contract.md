@@ -16,7 +16,7 @@ Status: APPROVED
 - [ ] B10 [ADDED]: 领券中心可见性 / 列表内容
 - [ ] B11 [ADDED]: 领券中心可见性 / 不可领模板不展示
 - [ ] B12 [ADDED]: 领取优惠券 / 领取成功
-- [ ] B13 [ADDED]: 领取优惠券 / 达到每人限领
+- [ ] B13 [ADDED]: 领取优惠券 / 达到每人限领（未过期的可用、被预占、已核销三者之和达 `per_user_limit`）
 - [ ] B14 [ADDED]: 领取优惠券 / 模板售罄与并发不超发
 - [ ] B15 [ADDED]: 领取优惠券 / 模板不可领
 - [ ] B16 [ADDED]: 领取优惠券 / 幂等重放
@@ -27,6 +27,7 @@ Status: APPROVED
 - [ ] B21 [ADDED]: 券生命周期状态机 / 已过期券不再被任何路径复用
 - [ ] B22 [ADDED]: 买家查询我的券 / 按状态查券
 - [ ] B23 [ADDED]: 买家查询我的券 / 只返回本人的券
+- [ ] B24 [ADDED]: 领取优惠券 / 过期券让出额度
 
 ## Quality
 - [ ] Q1: 后端全量测试与优惠券行为测试绿
@@ -52,7 +53,6 @@ Status: APPROVED
 
 ## Follow-ups
 - FU-4d12b0e8: 模板列表"已核销数"在大总量下是否改物化计数未定义。
-- FU-3a07b15: 限领计数中 `used`/`expired` 状态券是否占额度未定义——即"用券成交后能否再领"的产品口径待定，影响 B13 与限领计数实现的精确边界。
 - FU-0a8e7f3b: 券模板数量与每人限领的字段级上限无来源定义（`docs/api/openapi.yaml` 无任何券路径，券端点只定义在 `docs/architecture/07-coupon-pay-lifecycle.md` §5）；上限口径待定，券端点补入 openapi 另立任务。
 
 ## Pass Rule
