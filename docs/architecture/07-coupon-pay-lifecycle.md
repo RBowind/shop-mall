@@ -91,7 +91,7 @@
 - 部分唯一索引 `ON (order_id) WHERE status IN ('held','used')`：一张券同一时刻至多被一笔在途或已成交订单占用；取消释放后索引让位，同一券可再被新订单使用，历史 `order_id` 保留作留痕。
 - 券本身不存规则快照，门槛与抵扣实时取自 `coupon_templates`；这成立的前提是模板规则创建后不可变（§1 范围限制）。
 - 索引 `(user_id, status, id DESC)` 供我的券与结算页券列表。
-- 每人限领：领取事务内锁模板行（`FOR UPDATE`），数出该用户此模板的持券数与 `per_user_limit` 比较，再走上面的条件扣减；行锁串行 + 扣减兜底，与商品防超卖同一套路。
+- 每人限领：领取事务内锁模板行（`FOR UPDATE`），数出该用户此模板下未过期的券（`available`、`held`、`used` 三者之和）与 `per_user_limit` 比较，再走上面的条件扣减；已过期的券让出额度，用过的券不让；行锁串行 + 扣减兜底，与商品防超卖同一套路。
 - 领取幂等：部分唯一索引 `ON (user_id, request_id) WHERE request_id IS NOT NULL`，幂等域是单个买家；同一 `(user_id, request_id)` 重放原结果，同键绑定不同模板返回 409 冲突。换键即视为新领取。
 
 ### products 变更
@@ -352,7 +352,7 @@ sequenceDiagram
 
 ### 买家域（`/api/v1`，买家 Bearer JWT）
 
-- `GET /coupons/center` — 领券中心：处于有效期内（`valid_from` 已过、`valid_until` 未到）且 `active` 的模板列表，附当前用户已领数与可领标记；分页。
+- `GET /coupons/center` — 领券中心：处于有效期内（`valid_from` 已过、`valid_until` 未到）且 `active` 的模板列表，附当前用户未过期的已领数与可领标记；分页。
 - `POST /coupons/{templateId}/receive` — 领取一张券，Header `Idempotency-Key`（UUID，落库为 `user_coupons.request_id`）；同键同模板重放原结果、同键异模板 409；其余业务错误归 `2002`（图见 §4 主流程 1）。
 - `GET /me/coupons` — 我的券，`status` 查询参数四选一；响应含券名、门槛、抵扣、`valid_until`、状态、占用订单号（`held`/`used` 时）。
 - `POST /orders` — 请求体新增可选 `coupon_id`；成功响应为 `pending_payment` 订单，含 `total_points`、`discount_points`、`pay_points`、`pay_expire_at`。`coupon_id` 进入 `request_hash` 输入（§3）。
