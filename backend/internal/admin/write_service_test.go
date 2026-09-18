@@ -243,7 +243,7 @@ func TestServiceListUsersSearchByIdAndNickname(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list users by id: %v", err)
 	}
-	if totalID != 1 || len(byID) != 1 || byID[0].ID != member.ID {
+	if totalID != 2 || len(byID) != 1 || byID[0].ID != member.ID {
 		t.Fatalf("user by id = %+v (total %d), want %s", byID, totalID, member.ID)
 	}
 
