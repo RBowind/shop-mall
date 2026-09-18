@@ -219,6 +219,34 @@ type PointsLedger struct {
 
 func (PointsLedger) TableName() string { return "points_ledger" }
 
+// CouponTemplateStatus is the template issuance status. Only the template's
+// issuance is switchable; already-received coupons keep working after halt.
+type CouponTemplateStatus string
+
+const (
+	CouponTemplateStatusActive CouponTemplateStatus = "active"
+	CouponTemplateStatusHalted CouponTemplateStatus = "halted"
+)
+
+// CouponTemplate is a full-reduction coupon rule set
+// (docs/architecture/07-coupon-pay-lifecycle.md §3). The rule columns and the
+// validity window are frozen at creation; ReceivedCount is the
+// service-maintained lifetime issue counter, never decremented.
+type CouponTemplate struct {
+	ID              uid.ID               `gorm:"primaryKey;column:id"`
+	Name            string               `gorm:"column:name;size:64"`
+	ThresholdPoints int64                `gorm:"column:threshold_points"`
+	DiscountPoints  int64                `gorm:"column:discount_points"`
+	TotalCount      int32                `gorm:"column:total_count"`
+	PerUserLimit    int32                `gorm:"column:per_user_limit"`
+	ReceivedCount   int32                `gorm:"column:received_count"`
+	ValidFrom       time.Time            `gorm:"column:valid_from"`
+	ValidUntil      time.Time            `gorm:"column:valid_until"`
+	Status          CouponTemplateStatus `gorm:"column:status;size:16"`
+}
+
+func (CouponTemplate) TableName() string { return "coupon_templates" }
+
 type AuditLog struct {
 	ID           uid.ID         `gorm:"primaryKey;column:id"`
 	ActorAdminID *uid.ID        `gorm:"column:actor_admin_id;index:idx_audit_actor_time,priority:1"`
@@ -282,6 +310,10 @@ func (m *PointsLedger) BeforeCreate(*gorm.DB) error {
 }
 
 func (m *AuditLog) BeforeCreate(*gorm.DB) error {
+	return fillID(&m.ID)
+}
+
+func (m *CouponTemplate) BeforeCreate(*gorm.DB) error {
 	return fillID(&m.ID)
 }
 
