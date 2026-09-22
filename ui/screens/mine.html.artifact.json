@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "screens/mine.html",
+  "entry": "screens/mine.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-30T14:47:50.259Z",
+  "updatedAt": "2026-08-30T14:47:50.259Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

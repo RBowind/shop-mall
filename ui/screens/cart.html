@@ -1,0 +1,100 @@
+<!doctype html>
+<!-- 积分商城小程序原型 · 购物车（对应 pages/cart + miniapp-cart.png；勾选、步进、同类合并、余额校验） -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>购物车 · 积分商城</title>
+<link rel="stylesheet" href="../assets/app.css" />
+<style>
+  .cart-item { display: flex; gap: 12px; background: var(--surface); border-radius: var(--r-card); padding: 12px; margin-bottom: 10px; align-items: center; }
+  .cart-item .cbx { align-self: flex-start; margin-top: 34px; }
+  .cart-item .ph-img { width: 88px; height: 88px; flex: none; aspect-ratio: auto; }
+  .cart-item .ci-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .ci-name { font-size: 13px; line-height: 1.4; height: 36px; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .ci-spec { font-size: 11px; color: var(--fg-4); background: var(--tile); align-self: flex-start; padding: 2px 8px; border-radius: 4px; }
+  .ci-row { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; }
+  .ci-price { font-size: 16px; }
+  .cart-off { opacity: 0.5; }
+</style>
+</head>
+<body class="stage">
+  <span class="stage-label">03 · 购物车 — tab 3（勾选合计 + 余额校验）</span>
+  <div class="phone"><div class="screen" data-od-id="screen-cart">
+    <div id="chrome-top"></div>
+
+    <div class="body" id="list" data-od-id="cart-list"></div>
+
+    <div class="actionbar" data-od-id="cart-footer">
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--fg-6); cursor:pointer;">
+        <button class="cbx" id="selall" onclick="toggleAll()" aria-label="全选" aria-pressed="false"></button> 全选
+      </label>
+      <div class="ab-total">
+        <div class="line"><span class="muted" style="font-size:12px;">合计</span><span class="price" id="total" style="font-size:18px;">0<span class="unit">积分</span></span></div>
+        <span class="balance-hint" id="hint"></span>
+      </div>
+      <a class="btn btn-primary" id="go" href="checkout.html" style="text-decoration:none;">去结算</a>
+    </div>
+    <div id="chrome-tab"></div>
+    <div class="home-indicator"></div>
+  </div></div>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    PS.chrome({ title: '购物车', tab: 'cart' });
+    var specMap = { keyboard: '红轴', mug: '雾霾蓝', candle: '檀香', earbuds: '云母白', lamp: '暖光', speaker: '深灰' };
+    var cart = PS.getCart();
+
+    function render() {
+      var list = document.getElementById('list');
+      if (!cart.length) {
+        list.innerHTML = '<div class="empty" style="padding-top:96px;"><span id="eic"></span>购物车还是空的<br><a class="btn btn-secondary btn-sm" href="home.html" style="margin-top:8px;">去逛逛</a></div>';
+        document.getElementById('eic').innerHTML = PS.icon('cart', 40);
+      } else {
+        list.innerHTML = cart.map(function (c, i) {
+          var p = PS.productById(c.id);
+          var off = p.stock === 0;
+          return '<div class="cart-item' + (off ? ' cart-off' : '') + '" data-od-id="cart-item-' + c.id + '">' +
+            '<button class="cbx' + (c.selected && !off ? ' on' : '') + '" ' + (off ? 'disabled' : '') + ' onclick="toggle(' + i + ')" aria-label="选择" aria-pressed="' + (c.selected && !off) + '">' + (c.selected && !off ? PS.icon('check', 13) : '') + '</button>' +
+            '<a href="product-detail.html?id=' + c.id + '" style="text-decoration:none;color:inherit;">' +
+            '<div class="ph-img" style="border-radius:8px;">' + PS.icon(p.icon, 34) + '</div></a>' +
+            '<div class="ci-body"><div class="ci-name">' + p.name + '</div>' +
+            '<span class="ci-spec">' + (specMap[c.id] || p.specs[0]) + '</span>' +
+            '<div class="ci-row"><span class="price ci-price">' + p.points + '<span class="unit">积分</span></span>' +
+            '<span class="stepper"><button onclick="step(' + i + ',-1)" aria-label="减少">' + PS.icon('minus', 12) + '</button>' +
+            '<span class="qty">' + c.qty + '</span>' +
+            '<button onclick="step(' + i + ',1)" aria-label="增加"' + (c.qty >= p.stock ? ' disabled' : '') + '>' + PS.icon('plus', 12) + '</button></span></div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;"><span class="muted" style="font-size:11px;">' + (c.qty > 1 ? '×' + c.qty + ' 小计 ' + (p.points * c.qty) + ' 分' : '') + '</span>' +
+            '<button class="btn btn-ghost btn-sm" style="height:24px;padding:0 6px;font-size:11px;" onclick="remove(' + i + ')">删除</button></div>' +
+            '</div></div>';
+        }).join('');
+      }
+      recalc();
+    }
+    function recalc() {
+      var sel = cart.filter(function (c) { return c.selected && PS.productById(c.id).stock > 0; });
+      var total = sel.reduce(function (s, c) { return s + PS.productById(c.id).points * c.qty; }, 0);
+      var bal = PS.getBalance();
+      document.getElementById('total').innerHTML = PS.fmt(total) + '<span class="unit">积分</span>';
+      var hint = document.getElementById('hint'), go = document.getElementById('go');
+      var allOn = cart.length > 0 && sel.length === cart.filter(function (c) { return PS.productById(c.id).stock > 0; }).length;
+      var sa = document.getElementById('selall');
+      sa.classList.toggle('on', allOn); sa.innerHTML = allOn ? PS.icon('check', 13) : ''; sa.setAttribute('aria-pressed', allOn);
+      if (!sel.length) { hint.textContent = '请勾选要兑换的商品'; hint.className = 'balance-hint'; disable(); }
+      else if (total > bal) { hint.textContent = '积分不足，还差 ' + (total - bal) + ' 分'; hint.className = 'balance-hint insufficient'; disable(); }
+      else { hint.textContent = '可用余额 ' + PS.fmt(bal) + ' 分 · 兑换后剩 ' + PS.fmt(bal - total); hint.className = 'balance-hint'; enable(); }
+      function disable() { go.classList.add('is-disabled'); go.setAttribute('aria-disabled', 'true'); go.removeAttribute('href'); }
+      function enable() { go.classList.remove('is-disabled'); go.removeAttribute('aria-disabled'); go.href = 'checkout.html'; }
+    }
+    window.toggle = function (i) { cart[i].selected = !cart[i].selected; PS.setCart(cart); render(); };
+    window.step = function (i, d) { cart[i].qty = Math.max(1, cart[i].qty + d); PS.setCart(cart); render(); };
+    window.remove = function (i) { cart.splice(i, 1); PS.setCart(cart); render(); };
+    window.toggleAll = function () {
+      var anyOff = cart.some(function (c) { return !c.selected && PS.productById(c.id).stock > 0; });
+      cart.forEach(function (c) { if (PS.productById(c.id).stock > 0) c.selected = anyOff; });
+      PS.setCart(cart); render();
+    };
+    render();
+  </script>
+</body>
+</html>

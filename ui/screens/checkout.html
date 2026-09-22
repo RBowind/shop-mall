@@ -1,0 +1,162 @@
+<!doctype html>
+<!-- 积分商城小程序原型 · 兑换确认（对应分包 pages/checkout；地址选择、幂等下单、积分全额抵扣） -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>确认兑换 · 积分商城</title>
+<link rel="stylesheet" href="../assets/app.css" />
+<style>
+  .addr-card { display: flex; gap: 10px; padding: 14px; border: 1.5px solid transparent; border-radius: 10px; background: var(--tile); margin-bottom: 10px; cursor: pointer; width: 100%; text-align: left; font: inherit; color: var(--fg); }
+  .addr-card.on { border-color: var(--action); background: var(--action-soft); }
+  .addr-card .a-main { flex: 1; min-width: 0; }
+  .addr-card .a-line1 { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .addr-card .a-line2 { font-size: 12px; color: var(--fg-6); line-height: 1.5; margin-top: 3px; }
+  .addr-card .tag-def { font-size: 10px; color: var(--action); background: var(--action-soft); border-radius: 3px; padding: 1px 5px; font-weight: 600; }
+  .ck-item { display: flex; gap: 10px; padding: 10px 0; align-items: center; }
+  .ck-item .ph-img { width: 56px; height: 56px; aspect-ratio: auto; flex: none; }
+  .ck-item .b { flex: 1; min-width: 0; }
+  .ck-item .n { font-size: 13px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ck-item .m { display: flex; justify-content: space-between; font-size: 11px; color: var(--fg-4); margin-top: 3px; }
+  .sum-row { display: flex; justify-content: space-between; padding: 7px 0; font-size: 13px; }
+  .sum-row .k { color: var(--fg-6); }
+</style>
+</head>
+<body class="stage">
+  <span class="stage-label">06 · 兑换确认 — 分包页（地址 + 明细 + 积分抵扣）</span>
+  <div class="phone"><div class="screen" data-od-id="screen-checkout">
+    <div id="chrome-top"></div>
+
+    <div class="body">
+      <!-- 收货地址 -->
+      <section data-od-id="ck-address" class="card" style="padding: 14px;">
+        <div style="font-size:14px;font-weight:600;margin-bottom:12px;">收货地址</div>
+        <div id="addr-list"></div>
+      </section>
+
+      <!-- 商品明细 -->
+      <section data-od-id="ck-items" class="card block" style="margin-top:12px; padding: 14px;">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px;">兑换商品 <span class="muted" style="font-size:11px;font-weight:400;" id="item-count"></span></div>
+        <div id="item-list"></div>
+      </section>
+
+      <!-- 金额汇总 -->
+      <section data-od-id="ck-summary" class="card block" style="margin-top:12px; padding: 14px;">
+        <div class="sum-row"><span class="k">商品积分合计</span><span class="tnum" id="s-goods"></span></div>
+        <div class="sum-row"><span class="k">运费</span><span class="tnum" style="color:var(--action);">0 积分（全场包邮）</span></div>
+        <hr class="hairline" />
+        <div class="sum-row" style="padding-top:10px;"><span style="font-weight:700;">应付积分</span><span class="price" id="s-total" style="font-size:18px;"></span></div>
+      </section>
+
+      <div class="notice block" style="margin-top:12px;" data-od-id="ck-notice">
+        <span id="n-ic"></span>
+        <span>提交后将一次性扣减积分并生成兑换订单（幂等提交，不会重复扣分）。可在「我的 → 兑换订单」查看进度。</span>
+      </div>
+    </div>
+
+    <div class="actionbar" data-od-id="ck-footer">
+      <div class="ab-total">
+        <div class="line"><span class="muted" style="font-size:12px;">应付</span><span class="price" id="ab-total" style="font-size:19px;"></span></div>
+        <span class="balance-hint" id="ab-hint"></span>
+      </div>
+      <button class="btn btn-primary" style="min-width:120px;" id="submit" onclick="submit()">确认兑换</button>
+    </div>
+
+    <!-- 确认弹层 -->
+    <div class="overlay" id="ov" data-od-id="ck-dialog">
+      <div class="dialog">
+        <div class="dg-body">
+          <h3 class="dg-title">确认使用积分兑换？</h3>
+          <p class="dg-text">本次将扣减 <b class="tnum" id="dg-num" style="color:var(--accent);"></b> 积分，<br/>兑换后余额 <b class="tnum" id="dg-after"></b> 积分。</p>
+        </div>
+        <div class="dg-actions">
+          <button onclick="hide()">再想想</button>
+          <button onclick="pay()">确认扣减</button>
+        </div>
+      </div>
+    </div>
+    <div class="home-indicator"></div>
+  </div></div>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    var intent = {};
+    try { intent = JSON.parse(sessionStorage.getItem('ps-intent') || 'null'); } catch (e) {}
+    var items;
+    if (intent && intent.id) {
+      items = [{ id: intent.id, qty: intent.qty, selected: true }];
+      document.getElementById('item-count').textContent = '来自商品详情';
+    } else {
+      items = PS.getCart().filter(function (c) { return c.selected; });
+      document.getElementById('item-count').textContent = '来自购物车';
+    }
+    PS.chrome({ title: '确认兑换', back: 'cart.html' });
+    document.getElementById('n-ic').innerHTML = PS.icon('info', 14);
+
+    var total = items.reduce(function (s, c) { return s + PS.productById(c.id).points * c.qty; }, 0);
+    var bal = PS.getBalance();
+    var addrIdx = 0;
+
+    document.getElementById('addr-list').innerHTML = PS.USER.addresses.map(function (a, i) {
+      return '<button class="addr-card' + (i === addrIdx ? ' on' : '') + '" onclick="pickAddr(' + i + ')" data-od-id="addr-' + a.id + '">' +
+        '<span style="margin-top:2px;color:var(--fg-6);" id="pin' + i + '"></span>' +
+        '<span class="a-main"><span class="a-line1">' + a.receiver + ' ' + a.phone + (a.isDefault ? ' <span class="tag-def">默认</span>' : '') + '</span>' +
+        '<span class="a-line2">' + a.region + ' ' + a.detail + '</span></span></button>';
+    }).join('');
+    function renderPins() { PS.USER.addresses.forEach(function (a, i) { document.getElementById('pin' + i).innerHTML = PS.icon('pin', 16); }); }
+    renderPins();
+    window.pickAddr = function (i) {
+      addrIdx = i;
+      var cards = document.querySelectorAll('.addr-card');
+      cards.forEach(function (c, j) { c.classList.toggle('on', j === i); });
+    };
+
+    document.getElementById('item-list').innerHTML = items.map(function (c) {
+      var p = PS.productById(c.id);
+      return '<div class="ck-item"><div class="ph-img">' + PS.icon(p.icon, 26) + '</div>' +
+        '<div class="b"><div class="n">' + p.name + '</div>' +
+        '<div class="m"><span>' + p.points + ' 积分 × ' + c.qty + '</span><span class="tnum">' + (p.points * c.qty) + ' 积分</span></div></div></div>';
+    }).join('');
+
+    document.getElementById('s-goods').textContent = PS.fmt(total) + ' 积分';
+    document.getElementById('s-total').innerHTML = PS.fmt(total) + '<span class="unit">积分</span>';
+    document.getElementById('ab-total').innerHTML = PS.fmt(total) + '<span class="unit">积分</span>';
+    var hint = document.getElementById('ab-hint'), btn = document.getElementById('submit');
+    if (total > bal) {
+      hint.textContent = '积分不足，还差 ' + (total - bal) + ' 分'; hint.className = 'balance-hint insufficient';
+      btn.classList.add('is-disabled'); btn.setAttribute('disabled', '');
+    } else {
+      hint.textContent = '可用余额 ' + PS.fmt(bal) + ' 分'; hint.className = 'balance-hint';
+    }
+
+    var clientToken = 'ct-' + Date.now();   // 幂等键，对应 orders.client_token
+    window.submit = function () {
+      if (total > bal || !items.length) { PS.toast(items.length ? '积分不足，无法兑换' : '没有可兑换的商品'); return; }
+      document.getElementById('dg-num').textContent = PS.fmt(total);
+      document.getElementById('dg-after').textContent = PS.fmt(bal - total);
+      document.getElementById('ov').classList.add('show');
+    };
+    window.hide = function () { document.getElementById('ov').classList.remove('show'); };
+    window.pay = function () {
+      document.getElementById('ov').classList.remove('show');
+      var a = PS.USER.addresses[addrIdx];
+      var d = new Date();
+      var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+      var no = 'SN20260830-' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+      var order = {
+        no: no, pid: items[0].id, qty: items.reduce(function (s, c) { return s + c.qty; }, 0),
+        points: total, status: 'paid', created: '08-30 ' + pad(d.getHours()) + ':' + pad(d.getMinutes()),
+        shipped: null,
+        addr: a.receiver + ' ' + a.phone + ' · ' + a.region + a.detail,
+        items: items.map(function (c) { return { id: c.id, qty: c.qty, snapshot: PS.productById(c.id).points }; })
+      };
+      var orders = PS.getOrders(); orders.unshift(order); PS.saveOrders(orders);
+      PS.addLedger({ date: '08-30 ' + pad(d.getHours()) + ':' + pad(d.getMinutes()), type: 'exchange', title: '兑换订单扣分', delta: -total, after: bal - total, remark: order.items.map(function (i) { return PS.productById(i.id).name + ' ×' + i.qty; }).join('、') + ' · ' + no });
+      PS.setBalance(bal - total);
+      var cart = PS.getCart().filter(function (c) { return !c.selected || intent.id; });
+      PS.setCart(cart);
+      location.href = 'success.html?no=' + no;
+    };
+  </script>
+</body>
+</html>

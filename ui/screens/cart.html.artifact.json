@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "screens/cart.html",
+  "entry": "screens/cart.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-30T15:07:06.317Z",
+  "updatedAt": "2026-08-30T15:07:06.317Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

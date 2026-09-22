@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "screens/category.html",
+  "entry": "screens/category.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-30T14:46:39.155Z",
+  "updatedAt": "2026-08-30T14:46:39.155Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

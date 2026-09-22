@@ -1,0 +1,97 @@
+<!doctype html>
+<!-- 积分商城小程序原型 · 我的积分（points_ledger 流水 + 积分规则） -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>我的积分 · 积分商城</title>
+<link rel="stylesheet" href="../assets/app.css" />
+<style>
+  .points-hero-card {
+    color: var(--surface); border-radius: var(--r-card); padding: 20px 18px;
+    background: linear-gradient(125deg, color-mix(in oklch, var(--accent) 76%, black), var(--accent) 70%);
+    box-shadow: 0 10px 24px color-mix(in oklch, var(--accent) 30%, transparent);
+  }
+  .rule-item { padding: 12px 16px; border-bottom: 1px solid var(--hairline); }
+  .rule-item:last-child { border-bottom: 0; }
+  .rule-item h4 { font-size: 13px; margin: 0 0 3px; color: var(--fg); }
+  .rule-item p { font-size: 12px; color: var(--fg-6); margin: 0; line-height: 1.6; }
+  .lg-type { font-size: 10px; color: var(--fg-4); font-family: var(--font-mono); }
+</style>
+</head>
+<body class="stage">
+  <span class="stage-label">08 · 我的积分 — 收支流水（append-only 账本）</span>
+  <div class="phone"><div class="screen" data-od-id="screen-points">
+    <div id="chrome-top"></div>
+
+    <div class="body">
+      <section class="points-hero-card" data-od-id="points-total">
+        <div style="font-size:12px; opacity:0.88;">可用积分</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-top:2px;">
+          <span class="tnum" id="p-balance" style="font-size:36px;font-weight:800;letter-spacing:-0.02em;"></span><span style="font-size:13px;opacity:0.9;">分</span>
+        </div>
+        <div style="display:flex;gap:18px;margin-top:14px;font-size:11px;opacity:0.92;">
+          <span>累计获得 <b class="tnum" id="p-gain">0</b></span>
+          <span>累计兑换 <b class="tnum" id="p-spent">0</b></span>
+          <span>当前余额 <b class="tnum" id="p-balance2">460</b></span>
+        </div>
+      </section>
+
+      <div class="row-between" style="margin: 18px 2px 8px; display:flex; align-items:baseline; justify-content:space-between;">
+        <h2 style="font-size: 15px; font-weight: 700; margin: 0;">积分流水</h2>
+        <button class="btn btn-ghost btn-sm" style="height:26px;font-size:12px;" onclick="showRules()" data-od-id="open-rules">积分规则</button>
+      </div>
+
+      <section class="cell-group" data-od-id="points-ledger" id="ledger"></section>
+      <p class="muted" style="text-align:center;font-size:11px;padding:14px 0 24px;">仅展示最近 9 条 · 流水记录不可修改、不可删除</p>
+    </div>
+
+    <!-- 规则弹层 -->
+    <div class="overlay" id="ov" onclick="hideRules(event)">
+      <div class="dialog" style="width:320px;text-align:left;" onclick="event.stopPropagation()">
+        <div style="padding:18px 20px 6px;display:flex;justify-content:space-between;align-items:center;">
+          <b style="font-size:16px;">积分规则</b>
+          <button class="nav-back" style="position:static;width:28px;height:28px;" onclick="hideRules()" aria-label="关闭" id="x"></button>
+        </div>
+        <div style="max-height:380px;overflow-y:auto;scrollbar-width:none;">
+          <div class="rule-item"><h4>怎么获得</h4><p>首次登录自动赠送 100 积分（仅一次）；在商城下单支付后，按支付金额 1 元 = 1 积分回馈，实付金额越大回馈越多。</p></div>
+          <div class="rule-item"><h4>怎么使用</h4><p>积分商城内 1 积分抵扣 1 积分商品标价，全场包邮；兑换即扣减，积分不足时按钮会提示缺口。</p></div>
+          <div class="rule-item"><h4>怎么退回</h4><p>兑换订单在「已发货」前申请退款，审核通过后积分全额原路退回；已发货订单退货后退回积分。</p></div>
+          <div class="rule-item"><h4>有效期</h4><p>积分长期有效，不设过期清零。</p></div>
+          <div class="rule-item"><h4>账务说明</h4><p>所有积分变动以流水记录（append-only）为准，余额与流水在同一事务写入；客服可在后台人工调整。</p></div>
+        </div>
+        <div style="padding:10px 16px 16px;"><button class="btn btn-primary btn-block" onclick="hideRules()">我知道了</button></div>
+      </div>
+    </div>
+    <div class="home-indicator"></div>
+  </div></div>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    PS.chrome({ title: '我的积分', back: 'mine.html' });
+    var bal = PS.getBalance();
+    document.getElementById('p-balance').textContent = PS.fmt(bal);
+    document.getElementById('p-balance2').textContent = PS.fmt(bal);
+    document.getElementById('x').innerHTML = PS.icon('close', 16);
+
+    var typeIcon = { order_pay: 'coin', exchange: 'bag', signup_bonus: 'gift', refund: 'refresh' };
+    function render() {
+      var rows = PS.getLedger();
+      var gain = 0, spent = 0;
+      rows.forEach(function (e) { if (e.delta > 0) gain += e.delta; else spent += -e.delta; });
+      document.getElementById('p-gain').textContent = PS.fmt(gain);
+      document.getElementById('p-spent').textContent = '−' + PS.fmt(spent);
+      document.getElementById('ledger').innerHTML = rows.map(function (e) {
+        var plus = e.delta > 0;
+        return '<div class="ledger-row"><span class="cell-icon" style="width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:var(--tile);color:var(--fg-6);">' + PS.icon(typeIcon[e.type] || 'doc', 16) + '</span>' +
+          '<span class="lg-main"><p class="lg-title">' + e.title + '</p><p class="lg-sub">' + e.date + ' · ' + e.remark + '</p></span>' +
+          '<span class="lg-delta"><div class="d ' + (plus ? 'plus' : 'minus') + '">' + (plus ? '+' : '−') + PS.fmt(Math.abs(e.delta)) + '</div>' +
+          '<div class="after">余 ' + PS.fmt(e.after) + '</div></span></div>';
+      }).join('');
+    }
+    render();
+    window.showRules = function () { document.getElementById('ov').classList.add('show'); };
+    window.hideRules = function (ev) { if (!ev || ev.target.id === 'ov') document.getElementById('ov').classList.remove('show'); };
+  </script>
+</body>
+</html>
