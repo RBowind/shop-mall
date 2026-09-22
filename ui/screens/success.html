@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- 积分商城小程序原型 · 兑换成功（对应分包 pages/success；扣分回执 + 订单引导） -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>兑换成功 · 积分商城</title>
+<link rel="stylesheet" href="../assets/app.css" />
+<style>
+  .ok-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 48px 24px 0; }
+  .ok-mark {
+    width: 76px; height: 76px; border-radius: 50%;
+    background: color-mix(in oklch, var(--action) 10%, var(--surface));
+    color: var(--action); display: grid; place-items: center;
+    animation: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes pop { from { transform: scale(0.4); opacity: 0; } }
+  .receipt { width: 100%; margin-top: 32px; text-align: left; }
+  .receipt .r-row { display: flex; justify-content: space-between; padding: 12px 0; font-size: 13px; border-bottom: 1px solid var(--hairline); }
+  .receipt .r-row:last-child { border-bottom: 0; }
+  .receipt .r-k { color: var(--muted); }
+</style>
+</head>
+<body class="stage">
+  <span class="stage-label">07 · 兑换成功 — 主链路终点</span>
+  <div class="phone"><div class="screen" data-od-id="screen-success">
+    <div id="chrome-top"></div>
+
+    <div class="ok-wrap" style="padding: 0 14px;">
+      <div class="ok-mark" data-od-id="success-mark" id="mark"></div>
+      <h1 style="font-size: 20px; font-weight: 800; margin: 18px 0 6px;">兑换成功</h1>
+      <p class="muted" style="font-size: 13px; margin: 0;">积分已扣减，订单已生成，等待发货</p>
+
+      <section class="card receipt" data-od-id="success-receipt">
+        <div class="r-row"><span class="r-k">订单编号</span><span class="tnum" id="r-no" style="font-size:12px;"></span></div>
+        <div class="r-row"><span class="r-k">兑换商品</span><span id="r-goods" style="text-align:right;"></span></div>
+        <div class="r-row"><span class="r-k">扣减积分</span><span class="tnum" style="color:var(--accent); font-weight:700;" id="r-points"></span></div>
+        <div class="r-row"><span class="r-k">当前余额</span><span class="tnum" id="r-balance"></span></div>
+      </section>
+
+      <div style="width:100%; display:flex; gap:10px; margin-top:24px;">
+        <a class="btn btn-ghost" style="flex:1;" href="home.html" data-od-id="success-back">继续逛逛</a>
+        <a class="btn btn-primary" style="flex:1;" href="orders.html" data-od-id="success-orders">查看订单</a>
+      </div>
+      <p style="font-size:11px;color:var(--fg-4);margin:18px 0 24px;">发货后将有服务通知提醒（订阅消息本期未实现）</p>
+    </div>
+    <div class="home-indicator"></div>
+  </div></div>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    var params = new URLSearchParams(location.search);
+    var no = params.get('no') || 'SN20260830-0000';
+    PS.chrome({ title: '兑换结果' });
+    var nav = document.querySelector('.navbar .nav-back'); if (nav) nav.setAttribute('href', 'home.html');
+    document.getElementById('mark').innerHTML = PS.icon('check', 38);
+    var order = PS.getOrders().find(function (o) { return o.no === no; });
+    if (order) {
+      var p = PS.productById(order.pid);
+      document.getElementById('r-no').textContent = order.no;
+      document.getElementById('r-goods').textContent = p.name + ' ×' + order.qty;
+      document.getElementById('r-points').textContent = '−' + PS.fmt(order.points);
+    } else {
+      document.getElementById('r-no').textContent = no;
+      document.getElementById('r-goods').textContent = '无线降噪耳机 ×1';
+      document.getElementById('r-points').textContent = '−100';
+    }
+    document.getElementById('r-balance').textContent = PS.fmt(PS.getBalance()) + ' 积分';
+  </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "screens/search.html",
+  "entry": "screens/search.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-30T15:02:44.211Z",
+  "updatedAt": "2026-08-30T15:02:44.211Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

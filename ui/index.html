@@ -1,0 +1,198 @@
+<!doctype html>
+<!-- 积分商城小程序原型 · 总览启动页（launcher：全部屏 + 主链路流程 + 交互说明） -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>积分商城 · 微信小程序原型总览</title>
+<link rel="stylesheet" href="assets/app.css" />
+<style>
+  :root { --wrap: 1240px; }
+  body.doc {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--font-ui); line-height: 1.6;
+  }
+  .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 28px; }
+  header.top {
+    border-bottom: 1px solid var(--hairline);
+    background: color-mix(in oklch, var(--surface) 88%, transparent);
+    backdrop-filter: blur(10px);
+    position: sticky; top: 0; z-index: 10;
+  }
+  header.top .wrap { display: flex; align-items: center; gap: 14px; padding-block: 14px; }
+  .brandmark {
+    width: 34px; height: 34px; border-radius: 9px; flex: none;
+    background: linear-gradient(135deg, color-mix(in oklch, var(--accent) 88%, black), var(--accent));
+    color: var(--surface); display: grid; place-items: center; font-weight: 800; font-size: 15px;
+  }
+  header.top b { font-size: 16px; }
+  header.top .meta { margin-left: auto; font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .hero { padding: 64px 0 40px; }
+  .hero h1 { font-size: clamp(30px, 4.4vw, 46px); line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 14px; font-weight: 800; }
+  .hero p.lead { font-size: 16px; color: var(--fg-6); max-width: 62ch; margin: 0; }
+  .hero .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .hero .tag { font-family: var(--font-mono); font-size: 11px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); }
+  .sec-title { display: flex; align-items: baseline; gap: 12px; margin: 48px 0 18px; }
+  .sec-title h2 { font-size: 21px; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
+  .sec-title span { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+
+  /* 流程条 */
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin; }
+  .flow-step {
+    flex: none; background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px;
+    padding: 12px 16px; font-size: 13px; min-width: 148px; text-decoration: none; color: var(--fg);
+    display: flex; flex-direction: column; gap: 3px; transition: border-color .15s ease, transform .08s ease;
+  }
+  .flow-step:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .flow-step .n { font-family: var(--font-mono); font-size: 10px; color: var(--accent); font-weight: 700; }
+  .flow-step small { color: var(--muted); font-size: 11px; }
+  .flow-arrow { flex: none; align-self: center; color: var(--fg-4); padding: 0 6px; }
+  .flow-note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+  /* 屏列表 */
+  .screens { display: grid; grid-template-columns: repeat(auto-fill, minmax(212px, 1fr)); gap: 18px; }
+  .screen-item {
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 14px; overflow: hidden;
+    text-decoration: none; color: var(--fg); display: flex; flex-direction: column;
+    transition: box-shadow .18s ease, transform .1s ease, border-color .18s ease;
+  }
+  .screen-item:hover { box-shadow: 0 12px 32px color-mix(in oklch, var(--fg) 12%, transparent); transform: translateY(-2px); border-color: var(--border); }
+  .screen-item:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+  .thumb { position: relative; height: 236px; overflow: hidden; background: var(--bg); border-bottom: 1px solid var(--hairline); }
+  .thumb iframe { width: 390px; height: 844px; border: 0; transform: scale(0.615); transform-origin: top left; pointer-events: none; }
+  .thumb .open-hint {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    background: color-mix(in oklch, var(--fg) 45%, transparent); color: var(--surface);
+    font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .18s ease;
+  }
+  .screen-item:hover .open-hint { opacity: 1; }
+  .screen-item .si-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 3px; }
+  .screen-item .si-idx { font-family: var(--font-mono); font-size: 10px; color: var(--accent); }
+  .screen-item b { font-size: 14px; }
+  .screen-item small { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  /* 说明双栏 */
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  @media (max-width: 860px) { .duo { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--hairline); border-radius: 14px; padding: 20px 22px; }
+  .panel h3 { font-size: 15px; margin: 0 0 12px; font-weight: 800; }
+  .panel ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--fg-6); line-height: 2; }
+  .panel code { font-family: var(--font-mono); font-size: 12px; background: var(--tile); padding: 1px 6px; border-radius: 4px; color: var(--fg); }
+  .tokens { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .token { display: flex; align-items: center; gap: 8px; font-size: 11px; font-family: var(--font-mono); color: var(--fg-6); background: var(--tile); border-radius: 8px; padding: 6px 10px; }
+  .token i { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--hairline); }
+  footer.docfoot { margin-top: 64px; border-top: 1px solid var(--hairline); padding: 26px 0 40px; font-size: 12px; color: var(--muted); }
+  @media (max-width: 640px) { .screens { grid-template-columns: 1fr 1fr; } .hero { padding: 40px 0 28px; } }
+</style>
+</head>
+<body class="doc">
+  <header class="top"><div class="wrap">
+    <span class="brandmark">积</span>
+    <b>积分商城 · 微信小程序原型</b>
+    <span class="meta">shop-mall · Taro + TDesign · 10 screens</span>
+  </div></header>
+
+  <main class="wrap">
+    <section class="hero" data-od-id="hero">
+      <h1>用积分，兑好物。</h1>
+      <p class="lead">忠实还原 shop-mall 真实实现的积分商城小程序高保真原型：品牌红 <span class="tnum">#e64340</span> 负责价格与选中、TDesign 蓝 <span class="tnum">#0052d9</span> 负责操作，积分为唯一货币单位。全部 10 屏可点击走通「浏览 → 详情 → 购物车 → 兑换 → 订单」主链路，余额与流水联动并本地持久化。</p>
+      <div class="tags">
+        <span class="tag">高保真</span><span class="tag">可交互 · 跨页状态同步</span><span class="tag">375 逻辑 px · 手机画框</span><span class="tag">真实品牌与数据模型</span>
+      </div>
+    </section>
+
+    <section data-od-id="flow">
+      <div class="sec-title"><h2>主链路流程</h2><span>P0 · 可完整走通</span></div>
+      <nav class="flow" aria-label="主流程">
+        <a class="flow-step" href="screens/home.html"><span class="n">01</span>首页<b style="font-weight:600;">浏览商品</b><small>余额卡 + 两列商品</small></a>
+        <span class="flow-arrow">→</span>
+        <a class="flow-step" href="screens/product-detail.html?id=earbuds"><span class="n">05</span>商品详情<b style="font-weight:600;">选规格</b><small>规格弹层 · 数量</small></a>
+        <span class="flow-arrow">→</span>
+        <a class="flow-step" href="screens/cart.html"><span class="n">03</span>购物车<b style="font-weight:600;">勾选合计</b><small>同类合并 · 余额校验</small></a>
+        <span class="flow-arrow">→</span>
+        <a class="flow-step" href="screens/checkout.html"><span class="n">06</span>兑换确认<b style="font-weight:600;">地址 + 扣分</b><small>幂等提交 · 确认弹层</small></a>
+        <span class="flow-arrow">→</span>
+        <a class="flow-step" href="screens/success.html"><span class="n">07</span>兑换成功<b style="font-weight:600;">扣分明细</b><small>订单号 + 回执</small></a>
+        <span class="flow-arrow">→</span>
+        <a class="flow-step" href="screens/orders.html"><span class="n">09</span>兑换订单<b style="font-weight:600;">状态机</b><small>确认收货 / 退款回分</small></a>
+      </nav>
+      <p class="flow-note">分支链路：我的 → <a href="screens/points.html" style="color:var(--action);">我的积分</a>（流水与兑换联动，积分来自注册赠送与下单回馈）。订单状态机：待发货 → 已发货 → 已完成；待发货可申请退款（演示中即时退回）。</p>
+    </section>
+
+    <section data-od-id="screens">
+      <div class="sec-title"><h2>全部 10 屏</h2><span>点击任意卡片进入交互原型</span></div>
+      <div class="screens" id="grid"></div>
+    </section>
+
+    <section data-od-id="notes">
+      <div class="sec-title"><h2>原型说明</h2><span>给评审者</span></div>
+      <div class="duo">
+        <div class="panel">
+          <h3>交互与状态</h3>
+          <ul>
+            <li>兑换、退款会<b>真实改动积分余额与流水</b>，跨页面同步（localStorage）。</li>
+            <li>购物车支持勾选、步进器、删除、全选与余额不足置灰。</li>
+            <li>分类页左栏切类、搜索页即时过滤，均为客户端交互。</li>
+            <li>状态色成对出现：选中 <code>#f0f6ff</code>+蓝、警示 <code>#fff3e8</code>+棕、错误 <code>#d54941</code>。</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>数据口径（对齐真实仓库）</h3>
+          <ul>
+            <li>价格锚点为真实测试数据：耳机 100 / 键盘 200 / 台灯 300 积分，其余商品为示意。</li>
+            <li>注册赠 100 分、订单流水 <code>points_ledger</code>（append-only）、状态机与 <code>orders</code> 表一致。</li>
+            <li>赚积分/签到扩展模块已移除，积分获取仅保留真实实现的注册赠送与下单回馈。</li>
+            <li>商品图为带文件标注的占位图（<code>images[0].jpg</code>），非实拍。</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>设计系统 token</h3>
+          <div class="tokens">
+            <span class="token"><i style="background:var(--accent);"></i>--accent 品牌红</span>
+            <span class="token"><i style="background:var(--action);"></i>--action 操作蓝</span>
+            <span class="token"><i style="background:var(--bg);"></i>--bg 页面灰</span>
+            <span class="token"><i style="background:var(--surface);"></i>--surface 卡片白</span>
+            <span class="token"><i style="background:var(--fg);"></i>--fg 主文字</span>
+            <span class="token"><i style="background:var(--muted);"></i>--muted 辅助</span>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin:12px 0 0;">完整设计系统见 <a href="DESIGN.md" style="color:var(--action);">DESIGN.md</a>；全部色值提取自 <code>miniapp/src/app.css</code> 并换算 OKLch，逐值出处见 <a href="brand-spec.md" style="color:var(--action);">brand-spec.md</a>。</p>
+        </div>
+        <div class="panel">
+          <h3>浏览方式</h3>
+          <ul>
+            <li>桌面：本总览页任意卡片直接进入；单屏为手机画框（390×844）。</li>
+            <li>手机/窄屏：单屏页自动去框全宽显示，可直接在真机浏览器演示。</li>
+            <li>建议先在 Chrome 设备模拟（iPhone 14 Pro）下走一遍主链路。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="docfoot"><div class="wrap">
+    积分商城小程序原型 · 基于 shop-mall（Taro + React + Zustand + TDesign，后端 Go + PostgreSQL）· 2026-08 · 示意数据均已标注
+  </div></footer>
+
+  <script src="assets/app.js"></script>
+  <script>
+    var SCREENS = [
+      ['home.html', '01', '首页 / 积分商城', 'tab 1 · 余额卡、两列商品瀑布'],
+      ['category.html', '02', '分类', 'tab 2 · 左栏切类 + 右侧商品列表'],
+      ['cart.html', '03', '购物车', 'tab 3 · 勾选合计、步进、余额校验'],
+      ['mine.html', '04', '我的', 'tab 4 · 头像余额、订单与功能入口'],
+      ['product-detail.html?id=earbuds', '05', '商品详情', '规格弹层、加购 / 立即兑换'],
+      ['checkout.html', '06', '兑换确认', '地址选择、幂等提交、确认扣分弹层'],
+      ['success.html', '07', '兑换成功', '扣分回执、订单引导'],
+      ['points.html', '08', '我的积分', '余额总览、收支流水、积分规则'],
+      ['orders.html', '09', '兑换订单', '状态 tab、物流时间线、申请退款'],
+      ['search.html', '10', '搜索', '历史/热搜、即时过滤结果']
+    ];
+    document.getElementById('grid').innerHTML = SCREENS.map(function (s) {
+      return '<a class="screen-item" href="screens/' + s[0] + '" data-od-id="launcher-' + s[1] + '">' +
+        '<span class="thumb"><iframe src="screens/' + s[0] + '" loading="lazy" tabindex="-1" title="' + s[2] + '"></iframe>' +
+        '<span class="open-hint">打开原型 ↗</span></span>' +
+        '<span class="si-body"><span class="si-idx">' + s[1] + '</span><b>' + s[2] + '</b><small>' + s[3] + '</small></span></a>';
+    }).join('');
+  </script>
+</body>
+</html>

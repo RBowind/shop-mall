@@ -1,0 +1,148 @@
+<!doctype html>
+<!-- 积分商城小程序原型 · 商品详情（对应分包 pages/product-detail；规格弹层 + 加购 + 立即兑换） -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>商品详情 · 积分商城</title>
+<link rel="stylesheet" href="../assets/app.css" />
+<style>
+  .gallery { background: var(--surface); position: relative; }
+  .gallery .ph-img { aspect-ratio: 1 / 1; border-radius: 0; width: 100%; }
+  .gallery .ph-img svg { width: 96px; height: 96px; }
+  .dots { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in oklch, var(--fg) 22%, transparent); }
+  .dots i.on { background: var(--accent); width: 16px; border-radius: 3px; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 55; background: var(--surface); border-radius: 16px 16px 0 0; padding: 18px 16px 26px; display: none; }
+  .sheet.show { display: block; }
+  .spec-opt { display: inline-flex; padding: 7px 18px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; color: var(--fg-6); background: var(--surface); cursor: pointer; margin: 0 8px 8px 0; }
+  .spec-opt.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .spec-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .info-rows { display: flex; flex-direction: column; }
+  .info-row { display: flex; justify-content: space-between; padding: 11px 0; font-size: 13px; border-bottom: 1px solid var(--hairline); }
+  .info-row:last-child { border-bottom: 0; }
+  .info-row .k { color: var(--muted); }
+</style>
+</head>
+<body class="stage">
+  <span class="stage-label">05 · 商品详情 — 分包页（规格选择 + 底部操作栏）</span>
+  <div class="phone"><div class="screen" data-od-id="screen-detail">
+    <div id="chrome-top"></div>
+
+    <div class="body" style="padding: 0 0 8px;">
+      <section class="gallery" data-od-id="detail-gallery">
+        <div class="ph-img" id="gallery"><span class="ph-tag">images[0].jpg</span></div>
+        <div class="dots"><i class="on"></i><i></i><i></i></div>
+      </section>
+
+      <section class="card" data-od-id="detail-info" style="border-radius: 0 0 var(--r-card) var(--r-card); margin: 0 0 10px;">
+        <div class="price-row" style="display:flex;align-items:baseline;gap:10px;">
+          <span class="price" id="d-price" style="font-size: 26px;">100<span class="unit">积分</span></span>
+          <span class="pill">包邮</span>
+        </div>
+        <h1 id="d-name" style="font-size: 16px; font-weight: 700; margin: 8px 0 4px; line-height: 1.4;"></h1>
+        <p id="d-desc" class="muted" style="font-size: 12px; line-height: 1.6; margin: 0 0 10px;"></p>
+        <div style="display:flex; justify-content: space-between; font-size: 11px; color: var(--fg-4);">
+          <span id="d-stock"></span><span id="d-sold" class="tnum"></span>
+        </div>
+      </section>
+
+      <section class="card" data-od-id="detail-spec" style="margin: 0 12px 10px; padding: 14px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;cursor:pointer;" onclick="openSheet()">
+          <span class="muted" style="font-size:12px;">规格</span>
+          <span style="display:flex;align-items:center;gap:6px;" id="spec-label"></span>
+        </div>
+      </section>
+
+      <section class="card" data-od-id="detail-rows" style="margin: 0 12px 10px; padding: 4px 16px;">
+        <div class="info-rows">
+          <div class="info-row"><span class="k">兑换方式</span><span>积分全额抵扣 · 无需支付</span></div>
+          <div class="info-row"><span class="k">发货</span><span>下单后 48 小时内发出</span></div>
+          <div class="info-row"><span class="k">售后</span><span>签收 7 天内可申请退积分</span></div>
+        </div>
+      </section>
+
+      <p style="font-size: 11px; color: var(--fg-4); margin: 4px 16px 0; line-height: 1.6;">
+        说明：本商城以积分代替真实支付；价格中的「积分」为唯一计价单位。商品图与库存为原型示意数据。
+      </p>
+    </div>
+
+    <div class="actionbar" data-od-id="detail-footer">
+      <button class="btn btn-secondary" style="flex:1;" onclick="openSheet('cart')">加入购物车</button>
+      <button class="btn btn-primary" style="flex:1;" id="exchange" onclick="openSheet('buy')">立即兑换</button>
+    </div>
+
+    <!-- 规格选择弹层 -->
+    <div class="overlay" id="overlay" onclick="closeSheet()"></div>
+    <div class="sheet" id="sheet" data-od-id="spec-sheet">
+      <div style="display:flex; gap:12px; margin-bottom:14px;">
+        <div class="ph-img" id="s-thumb" style="width:72px;height:72px;aspect-ratio:auto;flex:none;"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="price" id="s-price" style="font-size:20px;"></div>
+          <div class="muted" style="font-size:11px;margin-top:4px;" id="s-stock"></div>
+        </div>
+        <button class="nav-back" style="position:static;width:28px;height:28px;" onclick="closeSheet()" aria-label="关闭"></button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">选择规格</div>
+      <div id="spec-opts"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 16px;">
+        <span style="font-size:12px;color:var(--muted);">数量</span>
+        <span class="stepper"><button onclick="sq(-1)" aria-label="减少">−</button><span class="qty" id="s-qty">1</span><button onclick="sq(1)" aria-label="增加">+</button></span>
+      </div>
+      <button class="btn btn-primary btn-block" id="s-confirm" onclick="confirmSheet()">确定</button>
+    </div>
+    <div class="home-indicator"></div>
+  </div></div>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    PS.chrome({ title: '商品详情', back: 'home.html' });
+    var params = new URLSearchParams(location.search);
+    var p = PS.productById(params.get('id')) || PS.productById('earbuds');
+    var spec = p.specs[0], qty = 1, mode = 'buy';
+    var sheet = document.getElementById('sheet'), ov = document.getElementById('overlay');
+
+    document.getElementById('gallery').insertAdjacentHTML('afterbegin', PS.icon(p.icon, 96));
+    document.getElementById('s-thumb').innerHTML = PS.icon(p.icon, 30);
+    document.getElementById('d-price').innerHTML = PS.fmt(p.points) + '<span class="unit">积分</span>';
+    document.getElementById('s-price').innerHTML = PS.fmt(p.points) + '<span class="unit">积分</span>';
+    document.getElementById('d-name').textContent = p.name;
+    var descs = { earbuds: '主动降噪 · 单次 8 小时续航 · 充电盒 300mAh，通勤与办公两相宜。', keyboard: '87 键紧凑布局，Gasket 结构红轴，Type-C 有线/无线双模。', lamp: '国 AA 级照度，无频减蓝，触控调光，折叠收纳。' };
+    document.getElementById('d-desc').textContent = descs[p.id] || '精选好物，积分即可兑换，全场包邮，签收后支持 7 天售后。';
+    document.getElementById('d-stock').textContent = p.stock ? '库存 ' + p.stock + ' 件 · 每人限购 2 件' : '暂时缺货 · 补货中';
+    document.getElementById('d-sold').textContent = '已兑 ' + p.sold + ' 件';
+    document.getElementById('s-stock').textContent = p.stock ? '库存 ' + p.stock + ' 件' : '暂时缺货';
+    document.getElementById('spec-label').innerHTML = '<span>' + p.specs.join(' / ') + '</span>' + PS.icon('chev', 13);
+    document.querySelector('.sheet .nav-back').innerHTML = PS.icon('close', 16);
+
+    function renderOpts() {
+      document.getElementById('spec-opts').innerHTML = p.specs.map(function (s) {
+        return '<button class="spec-opt' + (s === spec ? ' on' : '') + '" onclick="pickSpec(\'' + s + '\')">' + s + '</button>';
+      }).join('');
+    }
+    window.pickSpec = function (s) { spec = s; renderOpts(); };
+    window.sq = function (d) { qty = Math.min(Math.max(1, qty + d), Math.max(1, p.stock), 2); document.getElementById('s-qty').textContent = qty; };
+    window.openSheet = function (m) {
+      mode = m || 'buy'; sheet.classList.add('show'); ov.classList.add('show');
+      document.getElementById('s-confirm').textContent = mode === 'cart' ? '加入购物车' : (p.stock ? '确认兑换' : '暂时缺货');
+      document.getElementById('s-confirm').classList.toggle('is-disabled', !p.stock && mode === 'buy');
+      renderOpts();
+    };
+    window.closeSheet = function () { sheet.classList.remove('show'); ov.classList.remove('show'); };
+    window.confirmSheet = function () {
+      if (!p.stock) { PS.toast('该商品已兑完，补货中'); return; }
+      if (mode === 'cart') {
+        var cart = PS.getCart();
+        var hit = cart.find(function (c) { return c.id === p.id; });
+        if (hit) { hit.qty = Math.min(hit.qty + qty, p.stock); } else { cart.push({ id: p.id, qty: qty, selected: true }); }
+        PS.setCart(cart);
+        closeSheet(); PS.toast('已加入购物车');
+      } else {
+        sessionStorage.setItem('ps-intent', JSON.stringify({ id: p.id, qty: qty, points: p.points, spec: spec }));
+        location.href = 'checkout.html?from=detail';
+      }
+    };
+    renderOpts();
+  </script>
+</body>
+</html>

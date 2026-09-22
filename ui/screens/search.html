@@ -1,0 +1,84 @@
+<!doctype html>
+<!-- 积分商城小程序原型 · 搜索（对应分包 pages/search；即时过滤 + 历史/热搜） -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>搜索 · 积分商城</title>
+<link rel="stylesheet" href="../assets/app.css" />
+<style>
+  .hot { display: inline-flex; padding: 6px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; color: var(--fg-6); cursor: pointer; margin: 0 8px 8px 0; }
+  .hot:hover { border-color: var(--accent); color: var(--accent); }
+  .hist { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fg-6); background: var(--tile); border-radius: 999px; padding: 6px 12px; margin: 0 8px 8px 0; cursor: pointer; }
+  .res-sum { font-size: 11px; color: var(--fg-4); margin: 4px 2px 10px; }
+</style>
+</head>
+<body class="stage">
+  <span class="stage-label">10 · 搜索 — 分包页（即时过滤）</span>
+  <div class="phone"><div class="screen" data-od-id="screen-search">
+    <div id="chrome-top"></div>
+
+    <div class="body" style="padding-top: 8px;">
+      <div class="searchbar" style="padding: 10px 14px;" data-od-id="search-input-wrap">
+        <span id="ic" style="display:grid;place-items:center;"></span>
+        <input id="q" type="search" placeholder="搜索耳机 / 键盘 / 台灯…" autocomplete="off" aria-label="搜索积分商品" />
+        <button class="nav-back" style="width:26px;height:26px;position:static;display:none;" id="clr" onclick="clearQ()" aria-label="清空"></button>
+      </div>
+
+      <div id="idle">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 2px 8px;">
+          <b style="font-size:13px;">历史搜索</b>
+          <button class="btn btn-ghost btn-sm" style="height:24px;font-size:11px;color:var(--fg-4);" onclick="clearHist()">清空</button>
+        </div>
+        <div id="hist"></div>
+        <b style="font-size:13px;display:block;margin:16px 2px 8px;">大家都在搜</b>
+        <div id="hot"></div>
+      </div>
+
+      <div id="res" hidden>
+        <p class="res-sum" id="res-sum"></p>
+        <section class="product-grid" id="grid"></section>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div></div>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    PS.chrome({ title: '搜索' });
+    document.getElementById('ic').innerHTML = PS.icon('search', 15);
+    document.getElementById('clr').innerHTML = PS.icon('close', 14);
+    var q = document.getElementById('q');
+    var hots = ['无线耳机', '机械键盘', '台灯', '马克杯', '帆布包', '音箱'];
+    var hist = [];
+    document.getElementById('hot').innerHTML = hots.map(function (h) {
+      return '<button class="hot" onclick="doSearch(\'' + h + '\')">' + h + '</button>';
+    }).join('');
+    function renderHist() {
+      document.getElementById('hist').innerHTML = hist.length
+        ? hist.map(function (h) { return '<button class="hist" onclick="doSearch(\'' + h + '\')">' + h + '</button>'; }).join('')
+        : '<span class="muted" style="font-size:12px;">暂无搜索记录</span>';
+    }
+    window.clearHist = function () { hist = []; renderHist(); };
+    window.doSearch = function (v) { q.value = v; search(); };
+    window.clearQ = function () { q.value = ''; search(); q.focus(); };
+    function search() {
+      var v = q.value.trim();
+      document.getElementById('clr').style.display = v ? 'grid' : 'none';
+      if (!v) { document.getElementById('idle').hidden = false; document.getElementById('res').hidden = true; return; }
+      var hits = PS.PRODUCTS.filter(function (p) {
+        return p.name.indexOf(v) > -1 || p.cat.indexOf(v) > -1 || hots.some(function (h) { return v.length > 1 && h.indexOf(v) > -1; });
+      });
+      document.getElementById('idle').hidden = true;
+      document.getElementById('res').hidden = false;
+      document.getElementById('res-sum').textContent = '找到 ' + hits.length + ' 件「' + v + '」相关商品';
+      document.getElementById('grid').innerHTML = hits.length ? hits.map(PS.productCard).join('')
+        : '<div class="empty" style="grid-column:1/-1;padding-top:48px;">未找到相关商品<br/>换个词试试，或浏览全部分类</div>';
+      if (hist.indexOf(v) === -1) { hist.unshift(v); hist = hist.slice(0, 5); renderHist(); }
+    }
+    q.addEventListener('input', search);
+    renderHist();
+  </script>
+</body>
+</html>

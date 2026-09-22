@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "screens/success.html",
+  "entry": "screens/success.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-30T14:49:46.497Z",
+  "updatedAt": "2026-08-30T14:49:46.497Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

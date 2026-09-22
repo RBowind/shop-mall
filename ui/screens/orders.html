@@ -1,0 +1,143 @@
+<!doctype html>
+<!-- 积分商城小程序原型 · 我的兑换订单（对应分包 pages/orders + order-card；状态机 tab + 展开物流 + 申请退款） -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>兑换订单 · 积分商城</title>
+<link rel="stylesheet" href="../assets/app.css" />
+<style>
+  .order-card { background: var(--surface); border-radius: var(--r-card); padding: 14px 16px; margin-bottom: 10px; }
+  .oc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .oc-no { font-size: 11px; color: var(--fg-4); font-family: var(--font-mono); }
+  .oc-item { display: flex; gap: 10px; align-items: center; }
+  .oc-item .ph-img { width: 56px; height: 56px; aspect-ratio: auto; flex: none; }
+  .oc-item .n { flex: 1; min-width: 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .oc-item .q { font-size: 11px; color: var(--fg-4); }
+  .oc-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hairline); }
+  .oc-actions { display: flex; gap: 8px; }
+  .oc-detail { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); font-size: 12px; color: var(--fg-6); line-height: 1.9; }
+  .order-card.open .oc-detail { display: block; }
+  .oc-detail .tl { display: flex; gap: 8px; align-items: flex-start; }
+  .oc-detail .tl i { width: 8px; height: 8px; border-radius: 50%; background: var(--border); margin-top: 6px; flex: none; }
+  .oc-detail .tl.on i { background: var(--action); }
+  .oc-toggle { color: var(--action); font-size: 12px; background: none; border: 0; cursor: pointer; padding: 0; display: inline-flex; align-items: center; gap: 2px; }
+</style>
+</head>
+<body class="stage">
+  <span class="stage-label">09 · 兑换订单 — 状态机 + 物流展开 + 退款</span>
+  <div class="phone"><div class="screen" data-od-id="screen-orders">
+    <div id="chrome-top"></div>
+
+    <div style="padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--hairline);">
+      <div class="seg-tabs" id="tabs" data-od-id="order-tabs" role="tablist"></div>
+    </div>
+
+    <div class="body" id="list"></div>
+
+    <!-- 退款确认弹层 -->
+    <div class="overlay" id="ov">
+      <div class="dialog">
+        <div class="dg-body">
+          <h3 class="dg-title">申请退还积分？</h3>
+          <p class="dg-text">该订单尚未发货，申请通过后将退还 <b class="tnum" id="rf-num" style="color:var(--accent);"></b> 积分。<br/>审核由后台处理，通常 1 个工作日内。</p>
+        </div>
+        <div class="dg-actions">
+          <button onclick="hideRf()">取消</button>
+          <button onclick="confirmRf()">提交申请</button>
+        </div>
+      </div>
+    </div>
+    <div class="home-indicator"></div>
+  </div></div>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    PS.chrome({ title: '兑换订单', back: 'mine.html', tab: 'mine' });
+    var TABS = [
+      { k: 'all', label: '全部' }, { k: 'paid', label: '待发货' },
+      { k: 'shipped', label: '已发货' }, { k: 'completed', label: '已完成' }
+    ];
+    var cur = 'all';
+    var params = new URLSearchParams(location.search);
+    if (params.get('status')) cur = params.get('status');
+    var refundTarget = null;
+
+    function renderTabs() {
+      document.getElementById('tabs').innerHTML = TABS.map(function (t) {
+        return '<button role="tab" aria-selected="' + (t.k === cur) + '" class="' + (t.k === cur ? 'on' : '') + '" onclick="pickTab(\'' + t.k + '\')">' + t.label + '</button>';
+      }).join('');
+    }
+    window.pickTab = function (k) { cur = k; renderTabs(); renderList(); };
+
+    function match(o) {
+      if (cur === 'all') return true;
+      if (cur === 'paid') return o.status === 'paid';
+      if (cur === 'shipped') return o.status === 'shipped' || o.status === 'refund_requested';
+      if (cur === 'completed') return o.status === 'completed';
+      return true;
+    }
+    function renderList() {
+      var orders = PS.getOrders().filter(match);
+      var list = document.getElementById('list');
+      if (!orders.length) { list.innerHTML = '<div class="empty" style="padding-top:80px;">' + PS.icon('doc', 40) + '<span>该状态下暂无订单</span></div>'; return; }
+      list.innerHTML = orders.map(function (o) {
+        var p = PS.productById(o.pid);
+        var statusPill = { paid: '', shipped: '', completed: 'ok', refund_requested: 'warn', refunded: 'error' }[o.status] || '';
+        var statusText = PS.STATUS_LABEL[o.status];
+        return '<div class="order-card" data-od-id="order-' + o.no + '">' +
+          '<div class="oc-head"><span class="oc-no">' + o.no + '</span><span class="pill ' + statusPill + '">' + statusText + '</span></div>' +
+          '<div class="oc-item"><div class="ph-img">' + PS.icon(p.icon, 24) + '</div>' +
+          '<span class="n">' + p.name + '</span><span class="q">×' + o.qty + '</span></div>' +
+          '<div class="oc-foot"><button class="oc-toggle" onclick="toggle(this)">订单详情 <span class="tg">' + PS.icon('chev', 12) + '</span></button>' +
+          '<div class="oc-actions">' +
+          (o.status === 'refund_requested' ? '<span class="muted" style="font-size:12px;">等待审核</span>'
+            : o.status === 'paid' ? '<button class="btn btn-ghost btn-sm" onclick="askRefund(\'' + o.no + '\')">申请退款</button><button class="btn btn-secondary btn-sm" onclick="PS.toast(\'原型示意：催发货\')">提醒发货</button>'
+            : o.status === 'shipped' ? '<button class="btn btn-primary btn-sm" onclick="confirmRecv(\'' + o.no + '\')">确认收货</button>'
+            : o.status === 'completed' ? '<button class="btn btn-ghost btn-sm" onclick="PS.toast(\'原型示意：售后入口\')">申请售后</button>' : '') +
+          '</div></div>' +
+          '<div class="oc-detail">' +
+          '<div class="tl on"><i></i><span>' + o.created + ' 提交兑换，扣减 ' + PS.fmt(o.points) + ' 积分</span></div>' +
+          (o.shipped ? '<div class="tl on"><i></i><span>' + o.shipped + ' 商家已发货</span></div>' : '<div class="tl"><i></i><span>等待发货（48 小时内）</span></div>') +
+          (o.status === 'refund_requested' ? '<div class="tl"><i></i><span>' + (o.refundReason || '用户申请退款') + ' · 退款审核中</span></div>' : '') +
+          (o.addr ? '<div>收货：' + o.addr + '</div>' : '<div>收货：王小雨 138****6204 · 浙江省杭州市西湖区文三路 100 号</div>') +
+          '</div></div>';
+      }).join('');
+      list.querySelectorAll('.order-card.open .tg').forEach(function (t) { t.style.transform = 'rotate(90deg)'; });
+    }
+    window.toggle = function (el) {
+      var card = el.closest('.order-card'); card.classList.toggle('open');
+      el.querySelector('.tg').style.transform = card.classList.contains('open') ? 'rotate(90deg)' : '';
+    };
+    window.askRefund = function (no) {
+      refundTarget = no;
+      var o = PS.getOrders().find(function (x) { return x.no === no; });
+      document.getElementById('rf-num').textContent = PS.fmt(o.points);
+      document.getElementById('ov').classList.add('show');
+    };
+    window.hideRf = function () { document.getElementById('ov').classList.remove('show'); };
+    window.confirmRf = function () {
+      var orders = PS.getOrders();
+      var o = orders.find(function (x) { return x.no === refundTarget; });
+      if (o) {
+        // 真实流程：paid → refund_requested（后台审核）→ refunded（回分）。
+        // 演示中直接模拟审核通过，一步推进到 refunded 并退回积分。
+        o.status = 'refunded'; o.refundReason = '未发货，退款已审核通过';
+        PS.saveOrders(orders);
+        var bal = PS.getBalance() + o.points;
+        PS.setBalance(bal);
+        PS.addLedger({ date: '08-30 09:44', type: 'refund', title: '退款积分退回', delta: o.points, after: bal, remark: '订单 ' + o.no + ' 退款通过' });
+      }
+      document.getElementById('ov').classList.remove('show');
+      PS.toast('审核通过，积分已退回'); renderList();
+    };
+    window.confirmRecv = function (no) {
+      var orders = PS.getOrders();
+      var o = orders.find(function (x) { return x.no === no; });
+      if (o) { o.status = 'completed'; PS.saveOrders(orders); }
+      PS.toast('已确认收货'); renderList();
+    };
+    renderTabs(); renderList();
+  </script>
+</body>
+</html>

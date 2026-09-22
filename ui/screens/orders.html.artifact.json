@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "screens/orders.html",
+  "entry": "screens/orders.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-30T15:06:22.193Z",
+  "updatedAt": "2026-08-30T15:06:22.193Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

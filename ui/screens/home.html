@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- 积分商城小程序原型 · 首页（对应 miniapp/src/pages/home，两列商品瀑布卡） -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>首页 · 积分商城</title>
+<link rel="stylesheet" href="../assets/app.css" />
+</head>
+<body class="stage">
+  <span class="stage-label">01 · 首页 / 积分商城 — tab 1</span>
+  <div class="phone"><div class="screen" data-od-id="screen-home">
+    <div id="chrome-top"></div>
+
+    <div class="body" style="padding: 0 12px 12px;">
+      <!-- 积分账户卡 -->
+      <section data-od-id="points-card" style="padding-top: 12px;">
+        <a class="points-hero" href="points.html" style="
+            display: flex; align-items: center; gap: 14px; text-decoration: none; color: var(--surface);
+            background: linear-gradient(120deg, color-mix(in oklch, var(--accent) 78%, black), var(--accent));
+            border-radius: var(--r-card); padding: 18px 18px; box-shadow: 0 8px 20px color-mix(in oklch, var(--accent) 28%, transparent);">
+          <span class="avatar" style="width: 44px; height: 44px; background: color-mix(in oklch, var(--surface) 22%, transparent); color: var(--surface); font-size: 18px;">雨</span>
+          <span style="flex: 1; min-width: 0;">
+            <span style="display:block; font-size: 12px; opacity: 0.85;">我的积分余额</span>
+            <span style="display:flex; align-items: baseline; gap: 4px;"><span class="tnum" id="hero-balance" style="font-size: 28px; font-weight: 800; letter-spacing: -0.01em;">460</span><span style="font-size: 12px; opacity: 0.9;">分</span></span>
+          </span>
+          <span style="display:flex; align-items:center; gap:2px; font-size:12px; opacity:0.92;">明细 <span id="hero-chev"></span></span>
+        </a>
+      </section>
+
+      <!-- 搜索条 -->
+      <div class="block" style="margin-top:12px;">
+        <a class="searchbar" href="search.html" data-od-id="home-search" style="text-decoration:none; color:var(--fg-4);">
+          <span id="ic-search" style="display:grid;place-items:center;"></span> 搜索积分商品
+        </a>
+      </div>
+
+      <!-- 分类 chips（仅展示，跳转分类页） -->
+      <div class="block" data-od-id="home-cats" style="display:flex; gap:8px; margin-top:12px; overflow-x:auto; scrollbar-width:none;">
+        <a class="chip on" href="category.html" style="text-decoration:none;">全部</a>
+        <a class="chip" href="category.html?cat=digital" style="text-decoration:none;">数码</a>
+        <a class="chip" href="category.html?cat=home" style="text-decoration:none;">家居</a>
+        <a class="chip" href="category.html?cat=life" style="text-decoration:none;">生活好物</a>
+      </div>
+
+      <!-- 精选楼层标题 -->
+      <div class="row-between block" style="margin: 18px 2px 10px; display:flex; align-items:baseline; justify-content:space-between;">
+        <h2 style="font-size: 15px; font-weight: 700; margin: 0;">为你推荐</h2>
+        <span class="muted" style="font-size: 11px;">积分 1:1 抵扣 · 全场包邮</span>
+      </div>
+
+      <!-- 两列商品卡（对齐 .product-grid 48.5% 双列） -->
+      <section data-od-id="product-list" class="product-grid" id="grid"></section>
+    </div>
+
+    <div id="chrome-tab"></div>
+    <div class="home-indicator"></div>
+  </div></div>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    PS.chrome({ title: '积分商城', tab: 'home' });
+    document.getElementById('grid').innerHTML =
+      PS.PRODUCTS.filter(function (p) { return p.id !== 'stand'; }).slice(0, 6)
+        .map(PS.productCard).join('') + PS.productCard(PS.productById('stand'));
+    document.getElementById('hero-chev').innerHTML = PS.icon('chev', 12);
+    document.getElementById('ic-search').innerHTML = PS.icon('search', 15);
+    document.getElementById('hero-balance').textContent = PS.fmt(PS.getBalance());
+  </script>
+</body>
+</html>

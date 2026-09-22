@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- 积分商城小程序原型 · 分类（对应 pages/category 左侧栏 + 右侧两列商品，交互为客户端筛选） -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>分类 · 积分商城</title>
+<link rel="stylesheet" href="../assets/app.css" />
+<style>
+  .cat-body { display: flex; flex: 1; min-height: 0; background: var(--surface); }
+  .cat-side { width: 88px; flex: none; overflow-y: auto; scrollbar-width: none; background: var(--surface); }
+  .cat-side::-webkit-scrollbar { display: none; }
+  .cat-item {
+    position: relative; display: block; width: 100%; border: 0; background: transparent;
+    padding: 16px 8px; font: inherit; font-size: 13px; color: var(--fg-6); cursor: pointer; text-align: center;
+  }
+  .cat-item.on { background: var(--bg); color: var(--accent); font-weight: 700; }
+  .cat-item.on::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 2px; background: var(--accent); }
+  .cat-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .cat-content { flex: 1; min-width: 0; overflow-y: auto; scrollbar-width: none; background: var(--bg); padding: 10px; }
+  .cat-content::-webkit-scrollbar { display: none; }
+  .cat-count { font-size: 11px; color: var(--fg-4); padding: 2px 4px 10px; }
+</style>
+</head>
+<body class="stage">
+  <span class="stage-label">02 · 分类 — tab 2（左栏切类 + 右栏商品）</span>
+  <div class="phone"><div class="screen" data-od-id="screen-category">
+    <div id="chrome-top"></div>
+
+    <div style="padding: 8px 12px; background: var(--surface);">
+      <a class="searchbar" href="search.html" data-od-id="cat-search" style="text-decoration:none; color:var(--fg-4);">
+        <span id="ic-search" style="display:grid;place-items:center;"></span> 搜索积分商品
+      </a>
+    </div>
+
+    <div class="cat-body">
+      <aside class="cat-side" id="side" role="tablist" aria-label="商品分类" data-od-id="cat-sidebar"></aside>
+      <main class="cat-content">
+        <p class="cat-count" id="count"></p>
+        <section class="product-grid" id="grid" data-od-id="cat-products"></section>
+      </main>
+    </div>
+
+    <div id="chrome-tab"></div>
+    <div class="home-indicator"></div>
+  </div></div>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    PS.chrome({ title: '分类', tab: 'category' });
+    document.getElementById('ic-search').innerHTML = PS.icon('search', 15);
+
+    var side = document.getElementById('side');
+    var grid = document.getElementById('grid');
+    var count = document.getElementById('count');
+    var current = 0;
+
+    function render() {
+      side.innerHTML = PS.CATS.map(function (c, i) {
+        return '<button class="cat-item' + (i === current ? ' on' : '') + '" role="tab" aria-selected="' + (i === current) + '" onclick="pick(' + i + ')">' + c + '</button>';
+      }).join('');
+      var list = current === 0 ? PS.PRODUCTS : PS.PRODUCTS.filter(function (p) { return p.cat === PS.CATS[current]; });
+      grid.innerHTML = list.map(PS.productCard).join('') ||
+        '<div class="empty" style="grid-column:1/-1;">该分类暂未上架商品</div>';
+      count.textContent = '共 ' + list.length + ' 件可兑商品';
+    }
+    window.pick = function (i) { current = i; render(); };
+    render();
+  </script>
+</body>
+</html>
