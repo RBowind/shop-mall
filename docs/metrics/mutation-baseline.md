@@ -59,6 +59,7 @@
 | 2026-10-26 07:54 | 78.15% | 84.85% | 1234 | 345 | 282 | 2 hours 48 minutes | −0.00pt |
 | 2026-10-27 10:08 | 78.09% | 84.85% | 1233 | 346 | 282 | 3 hours 13 minutes | −0.06pt |
 | 2026-10-28 09:02 | 78.15% | 84.85% | 1234 | 345 | 282 | 2 hours 30 minutes | +0.06pt |
+| 2026-10-29 09:53 | 78.15% | 84.85% | 1234 | 345 | 282 | 3 hours 4 minutes | −0.00pt |
 
 ## 最新一晚：存活变异体在哪（按目录，前 15）
 
@@ -76,7 +77,7 @@
 | internal/middleware | 9 | CONDITIONALS_BOUNDARY ×5, CONDITIONALS_NEGATION ×4 |
 | internal/application/points | 7 | CONDITIONALS_NEGATION ×4, CONDITIONALS_BOUNDARY ×3 |
 | internal/coupon | 7 | CONDITIONALS_BOUNDARY ×5, CONDITIONALS_NEGATION ×2 |
-| internal/application/auth | 6 | CONDITIONALS_BOUNDARY ×3, CONDITIONALS_NEGATION ×3 |
+| internal/application/auth | 6 | CONDITIONALS_NEGATION ×3, CONDITIONALS_BOUNDARY ×3 |
 | internal/application/refund | 6 | CONDITIONALS_NEGATION ×4, CONDITIONALS_BOUNDARY ×2 |
 | internal/cart | 5 | CONDITIONALS_NEGATION ×2, CONDITIONALS_BOUNDARY ×2, ARITHMETIC_BASE ×1 |
 
