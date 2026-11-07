@@ -68,6 +68,7 @@
 | 2026-11-04 10:12 | 78.15% | 84.85% | 1234 | 345 | 282 | 2 hours 34 minutes | −0.00pt |
 | 2026-11-05 10:28 | 78.09% | 84.85% | 1233 | 346 | 282 | 2 hours 33 minutes | −0.06pt |
 | 2026-11-06 10:47 | 78.21% | 84.85% | 1235 | 344 | 282 | 2 hours 56 minutes | +0.12pt |
+| 2026-11-07 10:27 | 78.15% | 84.85% | 1234 | 345 | 282 | 3 hours 14 seconds | −0.06pt |
 
 ## 最新一晚：存活变异体在哪（按目录，前 15）
 
@@ -95,6 +96,6 @@
 |---|---|
 | CONDITIONALS_NEGATION | 192 |
 | CONDITIONALS_BOUNDARY | 116 |
-| ARITHMETIC_BASE | 32 |
+| ARITHMETIC_BASE | 33 |
 | INVERT_NEGATIVES | 3 |
 | INCREMENT_DECREMENT | 1 |
