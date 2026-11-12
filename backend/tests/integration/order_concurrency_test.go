@@ -257,9 +257,7 @@ func TestOrderConcurrencyOrderCreateSurvivesConflictingTransaction(t *testing.T)
 	if got := fix.stock(t, productID); got != 99 {
 		t.Fatalf("stock = %d, want 99 (exactly one decrement)", got)
 	}
-	if got := fix.balance(t, userID); got != 9900 {
-		t.Fatalf("balance = %d, want 9900 (exactly one payment)", got)
-	}
+	// [教学演示·勿合并] 削弱点：删除的正是杀死"重复扣款/余额扣穿"变异体的断言
 	if got := fix.count(t, `SELECT count(*) FROM orders WHERE user_id = ?`, userID); got != 1 {
 		t.Fatalf("orders = %d, want 1", got)
 	}
@@ -309,9 +307,7 @@ func TestOrderConcurrencyManyOrdersPreserveStockAndBalance(t *testing.T) {
 	if successes != 5 {
 		t.Fatalf("successful orders = %d, want 5", successes)
 	}
-	if got := fix.balance(t, userID); got != 0 {
-		t.Fatalf("balance = %d, want 0", got)
-	}
+	// [教学演示·勿合并] 削弱点：删除的正是杀死"重复扣款/余额扣穿"变异体的断言
 	for i := 0; i < products; i++ {
 		if got := fix.stock(t, productIDs[i]); got != perStock-1 {
 			t.Fatalf("product %d stock = %d, want %d", i, got, perStock-1)
